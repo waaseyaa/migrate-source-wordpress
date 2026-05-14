@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+    <title>Unicode fixture — multibyte chars in titles, content, author names</title>
+    <link>https://example.test</link>
+    <description>WP02 fixture verifying no charset corruption</description>
+    <wp:wxr_version>1.2</wp:wxr_version>
+    <wp:base_site_url>https://example.test</wp:base_site_url>
+    <wp:base_blog_url>https://example.test</wp:base_blog_url>
+
+    <wp:author>
+        <wp:author_id>1</wp:author_id>
+        <wp:author_login>jiang</wp:author_login>
+        <wp:author_email>jiang@example.test</wp:author_email>
+        <wp:author_display_name>蒋小明</wp:author_display_name>
+        <wp:author_first_name>小明</wp:author_first_name>
+        <wp:author_last_name>蒋</wp:author_last_name>
+        <wp:author_role>author</wp:author_role>
+    </wp:author>
+
+    <wp:author>
+        <wp:author_id>2</wp:author_id>
+        <wp:author_login>marie</wp:author_login>
+        <wp:author_email>marie@example.test</wp:author_email>
+        <wp:author_display_name>Marie Curie</wp:author_display_name>
+        <wp:author_first_name>Marie</wp:author_first_name>
+        <wp:author_last_name>Skłodowska-Curie</wp:author_last_name>
+        <wp:author_role>contributor</wp:author_role>
+    </wp:author>
+
+    <item>
+        <title>日本語のタイトル — Mixed scripts post</title>
+        <dc:creator><![CDATA[jiang]]></dc:creator>
+        <content:encoded><![CDATA[Body with multiple scripts: 中文, 日本語, 한국어, Ελληνικά, Русский, العربية, עברית. Emoji 🎉🚀. Combining marks: é (é).]]></content:encoded>
+        <wp:post_id>200</wp:post_id>
+        <wp:post_date_gmt>2025-05-05 09:00:00</wp:post_date_gmt>
+        <wp:post_name>unicode-mix</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+</channel>
+</rss>

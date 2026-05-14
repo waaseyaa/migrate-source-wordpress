@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+    <title>Malformed entries fixture</title>
+    <link>https://example.test</link>
+    <description>WP02 fixture exercising libxml-recovery behavior</description>
+    <wp:wxr_version>1.2</wp:wxr_version>
+    <wp:base_site_url>https://example.test</wp:base_site_url>
+    <wp:base_blog_url>https://example.test</wp:base_blog_url>
+
+    <wp:author>
+        <wp:author_id>1</wp:author_id>
+        <wp:author_login>admin</wp:author_login>
+        <wp:author_email>admin@example.test</wp:author_email>
+        <wp:author_display_name>Admin</wp:author_display_name>
+        <wp:author_role>administrator</wp:author_role>
+    </wp:author>
+
+    <item>
+        <title>Valid post</title>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <content:encoded><![CDATA[This post is fine.]]></content:encoded>
+        <wp:post_id>100</wp:post_id>
+        <wp:post_date_gmt>2025-05-05 09:00:00</wp:post_date_gmt>
+        <wp:post_name>valid-post</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+
+    <item>
+        <title>Post with broken CDATA</title>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <content:encoded><![CDATA[This CDATA never closes.</content:encoded>
+        <wp:post_id>101</wp:post_id>
+        <wp:post_date_gmt>2025-05-06 09:00:00</wp:post_date_gmt>
+        <wp:post_name>broken-cdata</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+
+    <item>
+        <title>Another valid post</title>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <content:encoded><![CDATA[This one is also fine.]]></content:encoded>
+        <wp:post_id>102</wp:post_id>
+        <wp:post_date_gmt>2025-05-07 09:00:00</wp:post_date_gmt>
+        <wp:post_name>another-valid-post</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+</channel>
+</rss>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:wp="http://wordpress.org/export/1.2/"
+     xmlns:wc="http://woocommerce.com/schema/wxr/1.0/"
+     xmlns:yoast="https://yoast.com/wxr-schema/seo/1.0/">
+<channel>
+    <title>Plugin-namespace fixture (WooCommerce + Yoast)</title>
+    <link>https://example.test</link>
+    <description>WP02 fixture for opaque pass-through of plugin XML namespaces</description>
+    <wp:wxr_version>1.2</wp:wxr_version>
+    <wp:base_site_url>https://example.test</wp:base_site_url>
+    <wp:base_blog_url>https://example.test</wp:base_blog_url>
+
+    <wp:author>
+        <wp:author_id>1</wp:author_id>
+        <wp:author_login>store_admin</wp:author_login>
+        <wp:author_email>store@example.test</wp:author_email>
+        <wp:author_display_name>Store Admin</wp:author_display_name>
+        <wp:author_role>administrator</wp:author_role>
+    </wp:author>
+
+    <item>
+        <title>SEO-optimized post</title>
+        <dc:creator><![CDATA[store_admin]]></dc:creator>
+        <content:encoded><![CDATA[Post body.]]></content:encoded>
+        <wp:post_id>300</wp:post_id>
+        <wp:post_date_gmt>2025-05-05 09:00:00</wp:post_date_gmt>
+        <wp:post_name>seo-post</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+        <yoast:focus_keyword>example keyword</yoast:focus_keyword>
+        <yoast:meta_description>Custom Yoast meta description</yoast:meta_description>
+    </item>
+
+    <item>
+        <title>Product widget</title>
+        <dc:creator><![CDATA[store_admin]]></dc:creator>
+        <content:encoded><![CDATA[Product description body.]]></content:encoded>
+        <wp:post_id>301</wp:post_id>
+        <wp:post_date_gmt>2025-05-06 09:00:00</wp:post_date_gmt>
+        <wp:post_name>widget</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>product</wp:post_type>
+        <wc:product_id>4242</wc:product_id>
+        <wc:price>19.99</wc:price>
+        <wc:sku>WIDGET-001</wc:sku>
+    </item>
+</channel>
+</rss>
