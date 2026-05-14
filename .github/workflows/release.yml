@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-tag:
+    name: Validate semver tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG_NAME' does not match vX.Y.Z[-pre.N] semver format"
+            exit 1
+          fi
+          echo "✓ Tag $TAG_NAME is valid semver"
+
+  packagist-update:
+    name: Trigger Packagist crawl
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Packagist
+        env:
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+          PACKAGIST_USERNAME: ${{ vars.PACKAGIST_USERNAME }}
+        run: |
+          if [[ -z "$PACKAGIST_TOKEN" ]]; then
+            echo "::warning::PACKAGIST_TOKEN not set; skipping Packagist update. Configure repository secret to enable automatic updates."
+            exit 0
+          fi
+          response=$(curl -sf -XPOST -H'content-type:application/json' \
+            -d '{"repository":{"url":"https://github.com/waaseyaa/migrate-source-wordpress"}}' \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}")
+          echo "Packagist response: $response"

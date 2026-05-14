@@ -1,0 +1,45 @@
+{
+    "name": "waaseyaa/migrate-source-wordpress",
+    "description": "WordPress (WXR) source reader for the Waaseyaa migration platform",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "keywords": ["waaseyaa", "wordpress", "wxr", "migration", "import"],
+    "homepage": "https://github.com/waaseyaa/migrate-source-wordpress",
+    "require": {
+        "php": ">=8.5",
+        "ext-libxml": "*",
+        "ext-xmlreader": "*",
+        "waaseyaa/foundation": "^0.1.0-alpha.179",
+        "waaseyaa/migration": "^0.1.0-alpha.179"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "pestphp/pest": "^4.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Waaseyaa\\Migrate\\Source\\WordPress\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Waaseyaa\\Migrate\\Source\\WordPress\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "waaseyaa": {
+            "providers": [
+                "Waaseyaa\\Migrate\\Source\\WordPress\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "alpha",
+    "prefer-stable": true
+}

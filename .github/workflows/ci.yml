@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (PHP-CS-Fixer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer install --prefer-dist --no-progress --no-interaction
+      - run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
+  phpstan:
+    name: Static analysis (PHPStan level 5)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer install --prefer-dist --no-progress --no-interaction
+      - run: vendor/bin/phpstan analyse --level=5 --no-progress src tests
+
+  test:
+    name: Tests (Pest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer install --prefer-dist --no-progress --no-interaction
+      - run: vendor/bin/pest
+
+  composer-validate:
+    name: composer.json validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - run: composer validate --strict --no-check-publish
