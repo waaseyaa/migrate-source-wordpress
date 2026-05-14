@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-05-14
-
 ### Added
 
-- Initial release of `waaseyaa/migrate-source-wordpress`.
+- Initial implementation of `waaseyaa/migrate-source-wordpress` on `main`. Consumers pin `dev-main` until the Waaseyaa framework exits the alpha cycle and the package cuts its first tagged release.
 - **Streaming WXR parser** (`Wxr\WxrReader`) supporting WXR 1.0/1.1/1.2 with skip-with-warning recovery and a strict-mode opt-in.
 - **Five source plugins** implementing M-002's `SourcePluginInterface`, each with a `SourceConformanceTestCase`-derived contract test:
   - `Source\WordPressUserSource` (FR-006)
