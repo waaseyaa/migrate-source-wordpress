@@ -1,0 +1,186 @@
+# Customizing the WordPress reader
+
+This guide is for **developers** integrating `waaseyaa/migrate-source-wordpress` into a Waaseyaa application. Operator-facing instructions live in [`docs/migrating-from-wordpress.md`](migrating-from-wordpress.md).
+
+The package ships building blocks; the canonical wiring lives in your application. This document walks through the common override patterns.
+
+---
+
+## Renaming the example posts migration
+
+`WpPostsToArticles` is intentionally named as an example (FR-022). Most consumers want their destination called something more specific: `BlogPost`, `Teaching`, `NewsItem`, `Article`. You have two options:
+
+### Option A — Wrap with a new id
+
+Construct a fresh `MigrationDefinition` reusing the package's source + process plugins:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressShortcodeStrip;
+use Waaseyaa\Migrate\Source\WordPress\Source\WordPressPostSource;
+use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
+use Waaseyaa\Migration\MigrationDefinition;
+
+$reader = new WxrReader($wxrPath);
+
+$definition = new MigrationDefinition(
+    id: 'wp_posts_to_teachings',
+    source: new WordPressPostSource($reader, 'wp_posts_to_teachings'),
+    process: [
+        'title' => 'title',
+        'slug' => 'slug',
+        'content' => ['content', new WordPressShortcodeStrip()],
+        // ... your destination field map
+    ],
+    destination: $teachingsDestination,
+    dependencies: ['wp_users_to_accounts', 'wp_terms_to_taxonomy', 'wp_media_to_entities'],
+);
+```
+
+### Option B — Subclass the factory
+
+Extend the factory if you only need to tweak the id and keep the rest of the process map:
+
+```php
+final class WpPostsToTeachings extends WpPostsToArticles
+{
+    public const string MIGRATION_ID = 'wp_posts_to_teachings';
+}
+```
+
+Update `dependencies` in any downstream migrations (e.g. `WpCommentsToEngagement`) to reference the new id.
+
+---
+
+## Adding custom shortcode handlers
+
+The default `WordPressShortcodeStrip` removes unknown shortcodes silently. Register handlers to rewrite them into your destination markup:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressShortcodeStrip;
+
+$shortcodeStrip = new WordPressShortcodeStrip([
+    'gallery' => static fn (string $tag, array $attrs, string $inner): string =>
+        sprintf('<x-gallery ids="%s" />', htmlspecialchars($attrs['ids'] ?? '', ENT_QUOTES)),
+
+    'youtube' => static fn (string $tag, array $attrs, string $inner): string =>
+        sprintf('<x-embed src="https://www.youtube.com/embed/%s" />', $attrs['id'] ?? ''),
+]);
+```
+
+Handler signature: `(string $tagName, array $parsedAttrs, string $inner): string`.
+
+Handlers receive parsed attributes (both `"double"` and `'single'` quoted forms supported) plus the inner content for paired shortcodes (`[caption]inner[/caption]`). Tag matching is case-insensitive at runtime.
+
+Nested shortcodes recurse to depth 4. For deeper nests, pre-process content in your CMS before the migration.
+
+---
+
+## Configuring CDN host allowlist for media URL rewrites
+
+`WordPressMediaRewriteUrl` rewrites `wp-content/uploads/...` references in post content. By default it rewrites references on **any** host. To restrict to a known set (the canonical WP hostname plus any CDN), pass `cdnHosts`:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressMediaRewriteUrl;
+
+$mediaRewrite = new WordPressMediaRewriteUrl(
+    urlResolver: static fn (string $relativePath): ?string =>
+        $myMediaRegistry->lookupByPath($relativePath),
+    cdnHosts: ['cdn.example.com', 'media.example.com', 'images.example.com'],
+);
+```
+
+Host matching is case-insensitive. URLs on non-allowlisted hosts pass through unchanged. The `$urlResolver` closure is your application's path → destination URL function: typically a lookup against the media migration's id-map, or a pre-built path cache.
+
+Returning `null` from the resolver leaves the URL untouched and logs a warning at the `warning` level (FR-046).
+
+---
+
+## Enabling oEmbed remote resolution
+
+`WordPressOembedExpand` defaults to **detection only** — embed-capable URLs are recognised but not resolved (research §1.6: opt-in network I/O). To inline the provider's embed HTML:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Process\OembedFetcherInterface;
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressOembedExpand;
+
+final class GuzzleOembedFetcher implements OembedFetcherInterface
+{
+    public function __construct(private readonly \GuzzleHttp\ClientInterface $client) {}
+
+    public function fetch(string $oembedEndpointUrl): string
+    {
+        return (string) $this->client->request('GET', $oembedEndpointUrl, [
+            'headers' => ['Accept' => 'application/json'],
+            'timeout' => 5.0,
+        ])->getBody();
+    }
+}
+
+$oembedExpand = new WordPressOembedExpand(
+    resolveRemote: true,
+    fetcher: new GuzzleOembedFetcher($yourClient),
+);
+```
+
+The package ships **no default fetcher** to avoid taking on `psr/http-client` as a hard dependency. Use your application's preferred HTTP client behind `OembedFetcherInterface`.
+
+Resolutions are cached per plugin instance — within one migration run, the same URL is never fetched twice. Across runs, no cross-run persistence is provided; rely on your destination's content cache to avoid re-fetching on incremental runs.
+
+---
+
+## Skipping a migration
+
+If your destination has no comment-equivalent entity, drop `WpCommentsToEngagement` from the array returned to the runner — Waaseyaa's `MigrationRegistry` only walks what you register. The other four migrations work in isolation.
+
+Same pattern for skipping media (if your destination handles media out-of-band) or skipping users (if you're carrying over content only):
+
+```php
+return array_filter([
+    (new WpUsersToAccounts($reader, $accountDest))->definition(),
+    (new WpTermsToTaxonomy($reader, $taxonomyDest))->definition(),
+    $mediaDest !== null ? (new WpMediaToEntities($reader, $mediaDest))->definition() : null,
+    (new WpPostsToArticles($reader, $articleDest))->definition(),
+    $engagementDest !== null ? (new WpCommentsToEngagement($reader, $engagementDest))->definition() : null,
+]);
+```
+
+Make sure to also remove the skipped migration's id from downstream `dependencies()` lists if you skip a middle-of-chain step (otherwise `MigrationRegistry::boot()` raises `MigrationDependencyMissingException`).
+
+---
+
+## Custom postmeta handling
+
+The `_extra` field on every record carries unmapped namespaced attributes plus the full `postmeta` map. Use it to surface plugin-injected data in your destination:
+
+```php
+'custom_field' => static function (mixed $value, ProcessContext $context): mixed {
+    $postmeta = $context->sourceRecord->fields['_extra']['postmeta'] ?? [];
+    return $postmeta['my_plugin_field'] ?? null;
+},
+```
+
+A first-class postmeta extractor is deferred to v1.1 — the `_extra` escape hatch is the current path.
+
+---
+
+## Multisite (WordPress Multisite)
+
+WordPress Multisite exports one WXR per site (research §1.5). The package handles one WXR file per `WxrReader` instance. To migrate a multisite network:
+
+1. Export each site individually from its WP admin (or `wp-cli`).
+2. Run the migration **once per site**, with a `WxrReader` pointed at that site's WXR file and destinations partitioned per tenant.
+
+Cross-site shared users are deduplicated by destination — if two sites export the same `author_login`, the second run sees an idempotent skip on the user migration (the source-id hash matches).
+
+---
+
+## Stability commitment
+
+The package follows semantic versioning. From v1.0 onward:
+
+- **Stable symbols** (those listed in [`public-surface-map.md`](../public-surface-map.md)) only change in a major release, with a corresponding entry in `docs/upgrades/`.
+- **Stable error codes** (string constants on each exception class) are append-only — removing or renaming a code is a major break.
+- **Behavioural changes** to default migrations (e.g. changing how `must_reset_password` is set) follow the same major-version cadence.
+
+Pre-1.0 minor bumps may include breaking changes; consult the CHANGELOG when upgrading.
