@@ -22,13 +22,31 @@ final class ServiceProvider extends BaseServiceProvider implements
         // discovered via migrationPlugins(); migrations via migrations()).
     }
 
+    /**
+     * Default migrations are shipped as factory classes (`Migration\Wp*To*.php`)
+     * because they require consumer-supplied {@see \Waaseyaa\Migration\Plugin\DestinationPluginInterface}
+     * instances and a configured {@see Wxr\WxrReader} pointed at the export
+     * file. Consumers compose them at application boot, e.g.:
+     *
+     *     $reader = new WxrReader('/path/to/export.xml');
+     *     $migrations = [
+     *         (new WpUsersToAccounts($reader, $accountDest))->definition(),
+     *         ...
+     *     ];
+     */
     public function migrations(): iterable
     {
-        return []; // Populated by WP09 (default migration definitions).
+        return [];
     }
 
+    /**
+     * Source + process plugins ship as factory classes too: source plugins
+     * need a configured {@see Wxr\WxrReader} and {@see Process\WordPressMediaRewriteUrl}
+     * needs an operator-supplied url resolver closure. Consumers instantiate
+     * them at composition time.
+     */
     public function migrationPlugins(): iterable
     {
-        return []; // Source plugins added in WP03..WP07; process plugins in WP08.
+        return [];
     }
 }

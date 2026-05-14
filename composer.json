@@ -25,6 +25,7 @@
     "autoload-dev": {
         "psr-4": {
             "Waaseyaa\\Migrate\\Source\\WordPress\\Tests\\": "tests/",
+            "Waaseyaa\\Migrate\\Source\\WordPress\\Testing\\": "testing/",
             "Waaseyaa\\Migration\\Testing\\": "vendor/waaseyaa/migration/testing/"
         }
     },
