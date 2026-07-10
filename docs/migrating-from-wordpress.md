@@ -233,6 +233,35 @@ These are **framework-specific** and need to be re-created in Waaseyaa, not impo
 
 ---
 
+## Page-builder content (Elementor / Gutenberg)
+
+If your site used **Elementor**, its real page content lives in the
+`_elementor_data` postmeta entry as a JSON tree, not in `post_content` — WP
+often leaves `post_content` empty or a stub for Elementor-built pages. The
+default `Migration\WpPostsToArticles` migration runs
+`Process\WordPressBuilderContentDecode` as the first stage of its `content`
+process chain: when a post's `_elementor_data` is present, the plugin decodes
+the JSON tree into clean semantic HTML (headings, paragraphs, images,
+buttons, cards/grids) and that decoded HTML **replaces** the (often empty)
+`content` field. Elementor markup, inline styles, and Font Awesome classes
+are dropped in favor of framework-owned `pb-*` classes your theme can style.
+
+If your site used the **block editor (Gutenberg)**, `post_content` already
+holds real HTML, but it's interleaved with block-delimiter comments like
+`<!-- wp:paragraph -->` / `<!-- /wp:paragraph -->`. The same plugin strips
+those comments unconditionally (on both Elementor-decoded output and
+ordinary Gutenberg/classic-editor content), preserving the inner HTML.
+
+Nothing to configure for the default case — this runs automatically. If a
+page's `_elementor_data` payload is present but can't be decoded (malformed
+JSON, or a tree that yields no renderable content), the plugin logs a
+warning and leaves `content` unchanged rather than failing the import; check
+your logs for `Could not decode _elementor_data payload` after a run and
+hand-fix those pages. See the customization guide for swapping in your own
+`ElementorTreeDecoder`/logger, or removing the stage entirely.
+
+---
+
 ## Post-migration polish (optional)
 
 - **Re-resolve oEmbed embeds.** By default `WordPressOembedExpand` only *detects* oEmbed-capable URLs (YouTube, Vimeo, Twitter/X, Instagram) and leaves them as plain URLs. To inline the provider's embed HTML, set `resolveRemote: true` on the plugin and wire a `OembedFetcherInterface`. This makes one HTTP request per unique URL — cached per run. See the customization guide.

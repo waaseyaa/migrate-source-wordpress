@@ -39,6 +39,8 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressMediaRewriteUrl` | Process plugin | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\OembedFetcherInterface` | Pluggable HTTP fetcher | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPostmetaExtract` | Process plugin | true | G-016 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressBuilderContentDecode` | Process plugin | true | WP08 |
+| `Waaseyaa\Migrate\Source\WordPress\PageBuilder\ElementorTreeDecoder` | Concrete class (Elementor `_elementor_data` decoding strategy, consumed by `WordPressBuilderContentDecode`) | true | WP08 |
 
 ### Media copy
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Waaseyaa\Migrate\Source\WordPress\Migration;
 
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressBuilderContentDecode;
 use Waaseyaa\Migrate\Source\WordPress\Process\WordPressMediaRewriteUrl;
 use Waaseyaa\Migrate\Source\WordPress\Process\WordPressOembedExpand;
 use Waaseyaa\Migrate\Source\WordPress\Process\WordPressShortcodeStrip;
@@ -21,15 +22,21 @@ use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
  * adjust the migration id + process map; the rename path is documented in
  * the package README.
  *
- * The `content` field is processed through the standard three-stage
- * WordPress content chain: strip shortcodes, expand oEmbed-capable URLs
- * (no-op by default), rewrite media URLs. Operators tune behavior by
- * passing different process plugin instances into the constructor.
+ * The `content` field is processed through the standard WordPress content
+ * chain: decode page-builder content (Elementor `_elementor_data` → semantic
+ * HTML, plus Gutenberg block-comment stripping — G-013/G-029), strip
+ * shortcodes, expand oEmbed-capable URLs (no-op by default), rewrite media
+ * URLs. The builder-decode step runs first and is not constructor-injected
+ * (it has no operator-tunable state); the remaining stages are still
+ * constructor-configurable. Operators tune behavior by passing different
+ * process plugin instances into the constructor.
  *
  * @api
  *
  * @spec FR-022 — default posts migration (named as example)
  * @spec FR-023 — content processing chain
+ * @spec G-013 — decode Elementor `_elementor_data` into semantic HTML
+ * @spec G-029 — strip Gutenberg block-delimiter comments
  */
 final class WpPostsToArticles
 {
@@ -48,6 +55,7 @@ final class WpPostsToArticles
     {
         $contentChain = [
             'content',
+            new WordPressBuilderContentDecode(),
             $this->shortcodeStrip,
             $this->oembedExpand,
         ];
