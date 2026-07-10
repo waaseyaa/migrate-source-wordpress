@@ -72,9 +72,16 @@ final class WordPressMenuSource implements SourcePluginInterface
 
     private const string WP_POST_TYPE = 'nav_menu_item';
 
+    /**
+     * @param array<int|string, string> $objectTitles WP object id (post id or term id) → title, used as
+     *     a fallback when a `post_type`/`taxonomy` nav item's own `<title>` is empty (WordPress leaves
+     *     it empty for those flavours — see {@see self::objectTitleIndex()}). An explicit non-empty
+     *     title always wins; an unresolved `object_id` leaves the title as `''`.
+     */
     public function __construct(
         private readonly WxrReader $reader,
         private readonly string $migrationId = self::PLUGIN_ID,
+        private readonly array $objectTitles = [],
     ) {
     }
 
@@ -158,18 +165,102 @@ final class WordPressMenuSource implements SourcePluginInterface
         $objectId = $this->nullableInt($postMeta['_menu_item_object_id'] ?? null);
         $parentWpId = $this->nullableInt($postMeta['_menu_item_menu_item_parent'] ?? null);
 
+        $resolvedObjectId = $isCustom ? null : $objectId;
+
         return [
             'id' => $data['id'] ?? 0,
-            'title' => $data['title'] ?? '',
+            'title' => $this->resolveTitle($data['title'] ?? '', $resolvedObjectId),
             'url' => $isCustom ? ($postMeta['_menu_item_url'] ?? null) : null,
             'object_type' => $isCustom ? null : ($postMeta['_menu_item_object'] ?? null),
-            'object_id' => $isCustom ? null : $objectId,
+            'object_id' => $resolvedObjectId,
             'menu_name' => $this->resolveMenuName(is_array($data['terms'] ?? null) ? $data['terms'] : []),
             'parent_wp_id' => $parentWpId,
             'weight' => $this->intOrZero($extra['wp:menu_order'] ?? null),
             'enabled' => true,
             '_extra' => $extra,
         ];
+    }
+
+    /**
+     * Resolves the raw item title, falling back to `$this->objectTitles[$objectId]`
+     * when the raw title is empty (WordPress leaves `<title>` empty for
+     * `post_type`/`taxonomy` nav items — the human-readable label lives on the
+     * referenced post/term instead).
+     */
+    private function resolveTitle(mixed $rawTitle, ?int $objectId): string
+    {
+        $title = is_string($rawTitle) ? $rawTitle : '';
+        if ($title !== '') {
+            return $title;
+        }
+        if ($objectId === null) {
+            return '';
+        }
+
+        return $this->objectTitles[$objectId] ?? '';
+    }
+
+    /**
+     * Build a `WP object id → title` index from every `<wp:post_id>` post/page
+     * and taxonomy term in the WXR document, for use as {@see self::$objectTitles}.
+     *
+     * WordPress leaves `<title>` empty for `post_type`/`taxonomy`-flavour nav
+     * items (verified against the real Sheguiandah First Nation WXR export:
+     * 15 of its 17 `nav_menu_item` records ship with an empty `<title>`) — the
+     * human-readable label lives on the referenced post/page or term instead.
+     * This index bridges an item's `object_id` to that title, mirroring the
+     * `loginIndex()`/`slugIndex()` pattern on {@see WordPressUserSource} and
+     * {@see WordPressTaxonomySource} (G-019).
+     *
+     * Post ids and term ids share one flat key space here (per the
+     * `$objectTitles` contract) because a nav item's `object_id` is already
+     * disambiguated by its own `object_type`/`_menu_item_type` — the caller
+     * never needs to know which namespace a given key came from. A duplicate
+     * id across posts and terms keeps whichever was encountered first in
+     * document order.
+     *
+     * Reads the reader once; callers building both a menu source and a title
+     * index should construct a fresh `WxrReader` for each pass (streaming
+     * readers are not re-entrant / rewindable mid-stream).
+     *
+     * @return array<int, string> Keyed by WordPress post id or term id.
+     *
+     * @throws SourceReadException When the WXR file cannot be read or parsed.
+     */
+    public static function objectTitleIndex(WxrReader $reader): array
+    {
+        $index = [];
+        try {
+            foreach ($reader->records() as $record) {
+                if ($record['type'] === 'post') {
+                    $id = $record['data']['id'] ?? null;
+                    $title = $record['data']['title'] ?? null;
+                } elseif ($record['type'] === 'term') {
+                    $id = $record['data']['id'] ?? null;
+                    $title = $record['data']['name'] ?? null;
+                } else {
+                    continue;
+                }
+
+                if (!is_int($id) && !is_string($id)) {
+                    continue;
+                }
+                $intId = (int) $id;
+                if (isset($index[$intId]) || !is_string($title) || $title === '') {
+                    continue;
+                }
+                $index[$intId] = $title;
+            }
+        } catch (WxrParseException $e) {
+            throw new SourceReadException(
+                sourceId: self::PLUGIN_ID,
+                migrationId: self::PLUGIN_ID,
+                reason: $e->getMessage(),
+                previous: $e,
+            );
+        }
+
+        return $index;
     }
 
     /**

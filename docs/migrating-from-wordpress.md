@@ -127,6 +127,8 @@ $eventsSource = new WordPressPostSource($reader, migrationId: 'wp_events', postT
 
 Build a distinct `MigrationDefinition` per source (clone `WpPostsToArticles`'s `definition()` body per bundle, per the customization guide), each pointed at its own destination. Records whose `post_type` isn't in the list are skipped by that source entirely, so there is no overlap or double-import risk between the three migrations.
 
+**Rerun caveat.** Adding a `bundle:` (or otherwise changing the source filter/hash inputs) of an existing migration changes the source-record hashes the framework computes. Rerunning in place over an existing id-map after that kind of change makes every record look changed to the runner — expect the update path (or new revisions, on revisionable entity types) rather than a no-op, even though the underlying WordPress data didn't move.
+
 ---
 
 ## Step 5 — Run the import (≈5–60 min)
@@ -178,9 +180,46 @@ return [
 
 ### What comes across automatically
 
-- `title`, `weight` (from WordPress's menu-order), and `enabled` (always `true` — WordPress doesn't export a disabled state for nav items).
+- `weight` (from WordPress's menu-order), and `enabled` (always `true` — WordPress doesn't export a disabled state for nav items).
 - `url` — populated only for **custom link** items (`_menu_item_type = custom`); this is the operator-typed URL, copied verbatim.
 - `menu_name` — the menu this item belongs to, taken from the item's `nav_menu` term slug (e.g. `menu`, `portal-menu` — a WXR export commonly contains more than one menu). `menu_name` is also `menu_link`'s bundle, so this one field both classifies and buckets each link into its menu.
+
+**`title` is NOT reliably automatic.** WordPress only writes a real `<title>` for **custom link** items — for `post_type`/`taxonomy`-flavour items (a link to a page, post, or term) WordPress leaves `<title>` empty, because the "real" title lives on the referenced object, not the nav item. This is not an edge case: on the real Sheguiandah First Nation export, 15 of its 17 `nav_menu_item` records ship with an empty `<title>`. Left unaddressed, your imported nav renders with blank labels for almost every link.
+
+To fix this, build a `WP object id → title` index once from the WXR document and pass it to `WordPressMenuSource` via the `objectTitles` constructor argument — `WordPressMenuSource` falls back to it only when the item's own title is empty, and leaves an explicit non-empty title untouched. `WpMenusToMenuLinks::definition()` does not (yet) expose a source-injection seam, so build the `MigrationDefinition` directly using its process map (clone-and-customize, per the customization guide's pattern):
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Source\WordPressMenuSource;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks;
+use Waaseyaa\Migration\MigrationDefinition;
+
+// Reads posts/pages and terms once and builds a WP object id -> title map
+// (post ids and term ids share one flat key space; each nav item's own
+// object_type/_menu_item_type already disambiguates which one applies).
+$objectTitles = WordPressMenuSource::objectTitleIndex(new WxrReader($wxrPath));
+
+$menuSource = new WordPressMenuSource(new WxrReader($wxrPath), objectTitles: $objectTitles);
+
+$menuDefinition = new MigrationDefinition(
+    id: WpMenusToMenuLinks::MIGRATION_ID,
+    source: $menuSource,
+    process: [
+        'title' => 'title',
+        'url' => 'url',
+        'menu_name' => 'menu_name',
+        'weight' => 'weight',
+        'enabled' => 'enabled',
+    ],
+    destination: $menuLinkDest,
+);
+
+return [
+    // ...the five default migrations from Step 4...
+    $menuDefinition,
+];
+```
+
+(`objectTitleIndex()` and the menu source itself each read the reader once — construct a fresh `WxrReader` per pass, since streaming readers are not re-entrant.)
 
 ### What needs app-side wiring
 
@@ -208,9 +247,12 @@ This package ships two stock pieces that close both gaps, both consulting the `m
 
 Targets `waaseyaa/path`'s `path_alias` entity type. **Must run after** your posts migration (`WpPostsToArticles` or your renamed clone of it) — its `path` field looks up that migration's id-map, so the posts have to exist first.
 
+**Its source must match your posts migration's source exactly.** Left unset, `WpPostsToPathAliases` defaults to an *unfiltered* `WordPressPostSource`, covering every WordPress post type — including non-content records your posts migration itself never wrote (`nav_menu_item`, `custom_css`, `wp_global_styles`, `wp_navigation`, any other custom post type you don't model). If your posts migration filters `postTypes` (e.g. the per-bundle recipe in Step 4, or `WpEventsToNodes`'s `tribe_events`-only source), pass the SAME filtered source (or the same `postTypes` allowlist) via the `source` constructor argument — otherwise the alias migration attempts a `path` lookup against id-map rows that were never written, producing junk aliases or lookup misses for every excluded record.
+
 ```php
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToPathAliases;
+use Waaseyaa\Migrate\Source\WordPress\Source\WordPressPostSource;
 
 $postsDest = /* your EntityDestination for the "article"/"node" entity */;
 $pathAliasDest = /* your EntityDestination for the "path_alias" entity */;
@@ -224,10 +266,18 @@ $uuidToId = function (string $entityType, string $uuid): int|string|null {
     return $yourEntityRepository->findByUuid($entityType, $uuid)?->id();
 };
 
+// If your posts migration is unfiltered (the Step 4 default), leave
+// $aliasSource unset — WpPostsToPathAliases's own unfiltered default matches.
+// If your posts migration filters postTypes (the per-bundle recipe in Step
+// 4, or a custom clone of WpPostsToArticles), build the identical
+// WordPressPostSource here too — a fresh WxrReader, since streaming readers
+// are not re-entrant mid-stream.
+$aliasSource = new WordPressPostSource(new WxrReader($wxrPath), WpPostsToArticles::MIGRATION_ID, postTypes: ['post', 'page']);
+
 return [
     // ...users, terms, media, posts as before...
     (new WpPostsToArticles($reader, $postsDest))->definition(),
-    (new WpPostsToPathAliases($reader, $pathAliasDest, $uuidToId))->definition(),
+    (new WpPostsToPathAliases($reader, $pathAliasDest, $uuidToId, source: $aliasSource))->definition(),
 ];
 ```
 
