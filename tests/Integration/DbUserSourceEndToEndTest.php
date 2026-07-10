@@ -161,6 +161,9 @@ final class DbUserSourceEndToEndTest extends TestCase
         };
 
         $registry = new MigrationRegistry([$provider]);
+        // Explicit boot keeps this helper version-agnostic: lazy boot-on-first-query
+        // only exists as of waaseyaa/migration alpha.259 (G-024).
+        $registry->boot();
         $runner = new MigrationRunner($registry, new ProcessChainExecutor(), $idMap);
         $runner->run($definition->id, new RunOptions());
     }
