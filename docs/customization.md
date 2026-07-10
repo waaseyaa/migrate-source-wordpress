@@ -149,9 +149,20 @@ Make sure to also remove the skipped migration's id from downstream `dependencie
 
 ---
 
-## Custom postmeta handling
+## Mapping arbitrary postmeta
 
-The `_extra` field on every record carries unmapped namespaced attributes plus the full `postmeta` map. Use it to surface plugin-injected data in your destination:
+The `_extra` field on every post/attachment record carries unmapped namespaced attributes plus the full `postmeta` map (`$record['_extra']['postmeta']`, a flat `meta_key => meta_value` map). Any plugin that stores data as postmeta — The Events Calendar, WooCommerce, Yoast, a custom plugin — can be mapped into a typed destination field with `Process\WordPressPostmetaExtract`:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressPostmetaExtract;
+
+'event_start' => ['_extra', new WordPressPostmetaExtract('_EventStartDate')],
+'custom_field' => ['_extra', new WordPressPostmetaExtract('my_plugin_field', default: null)],
+```
+
+The chain's first element (`'_extra'`) resolves to `PassThroughProcessor('_extra')`, which reads the record's `_extra` field — that's what `WordPressPostmetaExtract::transform()` then receives as `$value`. It tolerates missing keys, a missing `postmeta` slot, or `_extra` not being an array at all, falling back to the constructor's `$default` (or `null`) in every case, so a malformed or plugin-absent record never throws.
+
+For a one-off case where a plugin-specific process step is overkill, the raw escape hatch still works:
 
 ```php
 'custom_field' => static function (mixed $value, ProcessContext $context): mixed {
@@ -160,7 +171,7 @@ The `_extra` field on every record carries unmapped namespaced attributes plus t
 },
 ```
 
-A first-class postmeta extractor is deferred to v1.1 — the `_extra` escape hatch is the current path.
+See [`WpEventsToNodes`](../src/Migration/WpEventsToNodes.php) for a full worked example (event start/end dates, organizer/venue linkage) and the [Events (The Events Calendar) recipe](migrating-from-wordpress.md#recipe-events-the-events-calendar) for the operator-facing walkthrough.
 
 ---
 

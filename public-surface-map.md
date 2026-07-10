@@ -37,6 +37,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressOembedExpand` | Process plugin | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressMediaRewriteUrl` | Process plugin | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\OembedFetcherInterface` | Pluggable HTTP fetcher | true | WP08 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPostmetaExtract` | Process plugin | true | G-016 |
 
 ### Media copy
 
@@ -56,6 +57,9 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpMediaToEntities` | MigrationDefinition factory | true | WP09 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles` | MigrationDefinition factory (example) | true | WP09 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpCommentsToEngagement` | MigrationDefinition factory | true | WP09 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\WpEventsToNodes` | MigrationDefinition factory | true | G-016 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\WpOrganizersToNodes` | MigrationDefinition factory | true | G-016 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\WpVenuesToNodes` | MigrationDefinition factory | true | G-016 |
 
 ### Exceptions
 

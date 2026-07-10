@@ -204,6 +204,33 @@ These are **framework-specific** and need to be re-created in Waaseyaa, not impo
 
 ---
 
+## Recipe: Events (The Events Calendar)
+
+If your WordPress site used **The Events Calendar** plugin, events, organizers, and venues are separate custom post types (`tribe_events`, `tribe_organizer`, `tribe_venue`) with their scheduling and contact/address data stored as WXR postmeta rather than typed fields. The package ships three additional migration factories for this shape:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpEventsToNodes;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpOrganizersToNodes;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpVenuesToNodes;
+
+$eventDest     = /* your EntityDestination for the "event" entity */;
+$organizerDest = /* …for the "organizer" entity */;
+$venueDest     = /* …for the "venue" entity */;
+
+return [
+    // ...users, terms, media as before...
+    (new WpOrganizersToNodes($reader, $organizerDest))->definition(),
+    (new WpVenuesToNodes($reader, $venueDest))->definition(),
+    (new WpEventsToNodes($reader, $eventDest))->definition(),
+];
+```
+
+Each factory filters `WordPressPostSource` down to its own post type internally, so events, organizers, and venues never collide even though they all come from the same WXR file. `WpEventsToNodes` extracts `_EventStartDate`/`_EventEndDate` into `event_start`/`event_end`, plus the raw WordPress post ids for the linked organizer/venue as `event_organizer_source_id`/`event_venue_source_id` — resolving those into destination-side relationships (once `WpOrganizersToNodes`/`WpVenuesToNodes` have run and populated the id-map) is a destination-side concern, since it depends on how your destination models the event ↔ organizer/venue relationship.
+
+`WpOrganizersToNodes` extracts `_OrganizerEmail`/`_OrganizerPhone`/`_OrganizerWebsite`; `WpVenuesToNodes` extracts `_VenueAddress`/`_VenueCity`/`_VenueProvince`/`_VenueCountry`. If your site used additional Events Calendar postmeta fields (currency, timezone, cost, ...), see the [customization guide](customization.md#mapping-arbitrary-postmeta) for how to map any postmeta key into a destination field.
+
+---
+
 ## Where to next
 
 - [Customization guide](customization.md) — overriding migrations, adding shortcode handlers, CDN allowlists, multisite, and more.
