@@ -42,6 +42,17 @@ function menuRecordById(string $id): SourceRecord
     return $record;
 }
 
+function recordByIdFrom(WordPressMenuSource $source, string $id): SourceRecord
+{
+    foreach ($source->records() as $record) {
+        if ((string) $record->field('id') === $id) {
+            return $record;
+        }
+    }
+
+    throw new \RuntimeException("No menu record with id {$id}.");
+}
+
 it('declares plugin metadata', function () {
     $source = makeMenuSource();
     expect($source->id())->toBe('wordpress_menu_item');
@@ -141,6 +152,45 @@ it('produces collision-free SourceIds vs other source types with the same id', f
 
     $postId = new SourceId('wp_post', $menuId->keys);
     expect($menuId->hash())->not->toBe($postId->hash());
+});
+
+// ---- Title fallback via objectTitles index (verifier finding 3 / G-022 follow-up) --
+
+it('builds a WP object id -> title index from posts/pages and terms in the WXR document', function () {
+    $index = WordPressMenuSource::objectTitleIndex(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'));
+
+    expect($index[76])->toBe('About Us');
+    expect($index[80])->toBe('Community Programs');
+    expect($index[24])->toBe('News Category');
+});
+
+it('falls back to the objectTitles index when the raw item title is empty for a post_type item (real corpus shape: 15 of 17 SFN nav items ship with an empty <title>)', function () {
+    $objectTitles = WordPressMenuSource::objectTitleIndex(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'));
+    $source = new WordPressMenuSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'), objectTitles: $objectTitles);
+
+    // Item 169: title is '' in the raw WXR, object_type=page, object_id=76.
+    expect(recordByIdFrom($source, '169')->field('title'))->toBe('About Us');
+});
+
+it('keeps an explicit non-empty title verbatim even when an objectTitles index is supplied', function () {
+    $objectTitles = WordPressMenuSource::objectTitleIndex(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'));
+    $source = new WordPressMenuSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'), objectTitles: $objectTitles);
+
+    // Item 190: title is 'News' in the raw WXR (taxonomy item, object_id=24
+    // which maps to 'News Category' in the index) — explicit title wins.
+    expect(recordByIdFrom($source, '190')->field('title'))->toBe('News');
+});
+
+it('preserves an empty title when the object_id cannot be resolved in the objectTitles index', function () {
+    $source = new WordPressMenuSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'), objectTitles: [999 => 'Unrelated']);
+
+    expect(recordByIdFrom($source, '169')->field('title'))->toBe('');
+});
+
+it('defaults to an empty objectTitles index when none is supplied, preserving prior empty-title behavior', function () {
+    $source = new WordPressMenuSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'));
+
+    expect(recordByIdFrom($source, '169')->field('title'))->toBe('');
 });
 
 it('wraps WxrParseException as SourceReadException when the file is missing', function () {

@@ -109,6 +109,55 @@ it('honors a custom langcode and system path prefix', function () {
     expect($langcode->default)->toBe('fr');
 });
 
+it('accepts an injected source, defaulting to an unfiltered WordPressPostSource when omitted (verifier finding 2)', function () {
+    $reader = new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml');
+    $filteredSource = new WordPressPostSource($reader, 'wp_posts_to_path_aliases', postTypes: ['post', 'page']);
+
+    $factory = new WpPostsToPathAliases(
+        reader: $reader,
+        destination: new InMemoryDestination(),
+        uuidToId: static fn (): int|string|null => null,
+        source: $filteredSource,
+    );
+    $definition = $factory->definition();
+
+    expect($definition->source)->toBe($filteredSource);
+});
+
+it('restricts emitted aliases to an injected filtered source (small-site.xml carries a "project" CPT the unfiltered default would include)', function () {
+    $filteredSource = new WordPressPostSource(
+        new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'),
+        'wp_posts_to_path_aliases',
+        postTypes: ['post', 'page'],
+    );
+    $unfilteredSource = new WordPressPostSource(
+        new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'),
+        'wp_posts_to_path_aliases',
+    );
+
+    $filteredTypes = [];
+    foreach ($filteredSource->records() as $record) {
+        $filteredTypes[] = $record->field('post_type');
+    }
+    $unfilteredTypes = [];
+    foreach ($unfilteredSource->records() as $record) {
+        $unfilteredTypes[] = $record->field('post_type');
+    }
+
+    expect($unfilteredTypes)->toContain('project');
+    expect($filteredTypes)->not->toContain('project');
+    expect($filteredTypes)->not->toBeEmpty();
+
+    $factory = new WpPostsToPathAliases(
+        reader: new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'),
+        destination: new InMemoryDestination(),
+        uuidToId: static fn (): int|string|null => null,
+        source: $filteredSource,
+    );
+
+    expect($factory->definition()->source)->toBe($filteredSource);
+});
+
 it('end-to-end: chain resolves the destination system path via the id-map lookup and uuid-to-id closure', function () {
     // Simulate what LookupProcessor + UuidToSystemPathProcessor do together,
     // wired the same way the factory wires them, against a fake lookup +

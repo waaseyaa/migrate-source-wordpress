@@ -94,7 +94,10 @@ it('passes content through silently for the empty-tree sentinel ([]), without wa
 it('replaces empty post content with decoded Elementor HTML when _elementor_data is present', function () {
     $plugin = new WordPressBuilderContentDecode();
     $context = builderDecodeContext([
-        'postmeta' => ['_elementor_data' => elementorFixtureJson('elementor-poc-about.json')],
+        'postmeta' => [
+            '_elementor_data' => elementorFixtureJson('elementor-poc-about.json'),
+            '_elementor_edit_mode' => 'builder',
+        ],
     ]);
 
     $out = $plugin->transform('', $context);
@@ -105,7 +108,10 @@ it('replaces empty post content with decoded Elementor HTML when _elementor_data
 it('decodes the real 52k SFN home page payload and replaces the (empty) post content', function () {
     $plugin = new WordPressBuilderContentDecode();
     $context = builderDecodeContext([
-        'postmeta' => ['_elementor_data' => elementorFixtureJson('elementor-sfn-home.json')],
+        'postmeta' => [
+            '_elementor_data' => elementorFixtureJson('elementor-sfn-home.json'),
+            '_elementor_edit_mode' => 'builder',
+        ],
     ]);
 
     $out = $plugin->transform('', $context);
@@ -115,12 +121,67 @@ it('decodes the real 52k SFN home page payload and replaces the (empty) post con
     expect($out)->toContain('Welcome to Sheguiandah First Nation');
 });
 
+// ---- (f) _elementor_edit_mode gate (verifier finding 1 / G-013 follow-up) --
+
+it('passes original content through unchanged when _elementor_data is present but _elementor_edit_mode is absent (real post 975 shape: stale Elementor residue on a non-builder page)', function () {
+    $plugin = new WordPressBuilderContentDecode();
+    $context = builderDecodeContext([
+        'postmeta' => [
+            // Real shape from the SFN corpus, post 975 "1850 Robinson Huron
+            // Treaty": _elementor_data is present (stale residue from a past
+            // edit-mode toggle) but _elementor_edit_mode is ABSENT, meaning
+            // WordPress renders post_content, not the Elementor tree.
+            '_elementor_data' => elementorFixtureJson('elementor-poc-about.json'),
+            '_elementor_template_type' => 'wp-post',
+            '_elementor_version' => '3.24.7',
+        ],
+    ]);
+
+    $liveContent = '<p>The live post_content body for this page — not the stale Elementor tree.</p>';
+    $out = $plugin->transform($liveContent, $context);
+
+    expect($out)->toBe($liveContent);
+    expect($out)->not->toContain('Our Mission');
+});
+
+it('decodes _elementor_data when _elementor_edit_mode is builder (positive control)', function () {
+    $plugin = new WordPressBuilderContentDecode();
+    $context = builderDecodeContext([
+        'postmeta' => [
+            '_elementor_data' => elementorFixtureJson('elementor-poc-about.json'),
+            '_elementor_edit_mode' => 'builder',
+        ],
+    ]);
+
+    $out = $plugin->transform('', $context);
+    expect($out)->toContain('Our Mission');
+    expect($out)->toContain('Acme Community');
+});
+
+it('passes content through unchanged when _elementor_edit_mode is present but not "builder"', function () {
+    $plugin = new WordPressBuilderContentDecode();
+    $context = builderDecodeContext([
+        'postmeta' => [
+            '_elementor_data' => elementorFixtureJson('elementor-poc-about.json'),
+            '_elementor_edit_mode' => 'classic',
+        ],
+    ]);
+
+    $liveContent = '<p>Classic-editor content.</p>';
+    $out = $plugin->transform($liveContent, $context);
+
+    expect($out)->toBe($liveContent);
+});
+
 // ---- (e) malformed JSON -> graceful passthrough + warning ------------------
 
 it('keeps original content and logs a warning when _elementor_data is malformed JSON', function () {
     $logger = new BuilderDecodeSpyLogger();
     $plugin = new WordPressBuilderContentDecode(logger: $logger);
-    $context = builderDecodeContext(['postmeta' => ['_elementor_data' => 'not valid json {']]);
+    $context = builderDecodeContext(['postmeta' => [
+        '_elementor_data' => 'not valid json {',
+        '_elementor_edit_mode' => 'builder',
+    ]]);
 
     $out = $plugin->transform('<p>Fallback body.</p>', $context);
     expect($out)->toBe('<p>Fallback body.</p>');
@@ -137,7 +198,10 @@ it('keeps original content and logs a warning when the tree yields no renderable
     $onlySkippedWidgets = json_encode([
         ['elType' => 'widget', 'widgetType' => 'spacer', 'settings' => []],
     ]);
-    $context = builderDecodeContext(['postmeta' => ['_elementor_data' => $onlySkippedWidgets]]);
+    $context = builderDecodeContext(['postmeta' => [
+        '_elementor_data' => $onlySkippedWidgets,
+        '_elementor_edit_mode' => 'builder',
+    ]]);
 
     $out = $plugin->transform('<p>Fallback.</p>', $context);
     expect($out)->toBe('<p>Fallback.</p>');
@@ -193,9 +257,14 @@ it('strips Gutenberg comments from decoded Elementor output too (when the payloa
         'widgetType' => 'text-editor',
         'settings' => ['editor' => '<p>See below.</p><!-- wp:paragraph --><p>Nested.</p><!-- /wp:paragraph -->'],
     ]]);
-    $context = builderDecodeContext(['postmeta' => ['_elementor_data' => $embeddedCommentJson]]);
+    $context = builderDecodeContext(['postmeta' => [
+        '_elementor_data' => $embeddedCommentJson,
+        '_elementor_edit_mode' => 'builder',
+    ]]);
 
     $out = $plugin->transform('', $context);
+    expect($out)->toContain('See below.');
+    expect($out)->toContain('Nested.');
     expect($out)->not->toContain('<!-- wp:');
     expect($out)->not->toContain('<!-- /wp:');
 });

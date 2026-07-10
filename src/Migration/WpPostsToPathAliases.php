@@ -13,6 +13,7 @@ use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
 use Waaseyaa\Migration\Plugin\Process\DefaultValueProcessor;
 use Waaseyaa\Migration\Plugin\Process\LookupProcessor;
 use Waaseyaa\Migration\Plugin\Process\TypeCoerceProcessor;
+use Waaseyaa\Migration\Plugin\SourcePluginInterface;
 
 /**
  * Default WordPress posts → `path_alias` migration factory (G-020).
@@ -54,6 +55,19 @@ use Waaseyaa\Migration\Plugin\Process\TypeCoerceProcessor;
  * — the `path` field's lookup depends on that migration's id-map rows
  * already existing. Declared via `dependencies`.
  *
+ * ### Source seam
+ *
+ * A constructor-injected `$source` lets consumers supply a differently
+ * composed source (e.g. `WordPressPostSource` filtered by `postTypes`)
+ * without changing this factory — mirroring {@see WpEventsToNodes}'s seam.
+ * Left unset, this defaults to an unfiltered `WordPressPostSource`, which
+ * emits an alias attempt for every WordPress post type the posts migration
+ * itself may not have covered (`nav_menu_item`, `custom_css`,
+ * `wp_global_styles`, `wp_navigation`, and any other custom post type). This
+ * migration's coverage must match whatever the posts migration actually
+ * wrote — pass the SAME filtered source (or the same `postTypes` allowlist)
+ * you used for your posts migration.
+ *
  * @api
  *
  * @spec G-020 — path-alias emission from WordPress permalinks
@@ -70,6 +84,14 @@ final class WpPostsToPathAliases
      * @param string $destinationEntityType Destination entity type passed to `$uuidToId` (e.g. `node`, `article`).
      * @param string $systemPathPrefix System-path prefix the resolved id is appended to (e.g. `/node/`).
      * @param string $langcode ISO 639-1 language code stamped on every emitted alias.
+     * @param ?SourcePluginInterface $source Overrides the default source. This migration's alias
+     *     coverage must match the posts migration's coverage exactly — the `path` field's
+     *     {@see LookupProcessor} only finds an id-map row for records the posts migration actually
+     *     wrote. Pass the SAME filtered source (or the same `postTypes` allowlist) you used to build
+     *     your posts migration; otherwise this defaults to an unfiltered {@see WordPressPostSource}
+     *     covering every WordPress post type, including non-content records like `nav_menu_item`,
+     *     `custom_css`, `wp_global_styles`, and `wp_navigation` — see
+     *     `docs/migrating-from-wordpress.md` "URL preservation".
      */
     public function __construct(
         private readonly WxrReader $reader,
@@ -79,6 +101,7 @@ final class WpPostsToPathAliases
         private readonly string $destinationEntityType = 'node',
         private readonly string $systemPathPrefix = '/node/',
         private readonly string $langcode = 'en',
+        private readonly ?SourcePluginInterface $source = null,
     ) {
     }
 
@@ -86,7 +109,7 @@ final class WpPostsToPathAliases
     {
         return new MigrationDefinition(
             id: self::MIGRATION_ID,
-            source: new WordPressPostSource($this->reader, self::MIGRATION_ID),
+            source: $this->source ?? new WordPressPostSource($this->reader, self::MIGRATION_ID),
             process: [
                 'alias' => ['_extra', new WordPressPermalinkToAlias()],
                 'path' => [
