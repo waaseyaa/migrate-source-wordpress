@@ -187,7 +187,7 @@ return [
 **Page/post/category links (`object_type` + `object_id`).** WordPress nav items that point at a page, post, or term (`_menu_item_type` of `post_type` or `taxonomy`) carry `null` for `url` and instead expose `object_type` (`page`, `post`, a custom post type, `category`, `post_tag`, …) and `object_id` (the WordPress post/term id). `WordPressMenuSource` cannot resolve these to a destination URL by itself — that needs either:
 
 - A `Waaseyaa\Migration\Plugin\Process\LookupProcessor` against the sibling posts/terms migration's id-map (`migration: WpPostsToArticles::MIGRATION_ID` or `WpTermsToTaxonomy::MIGRATION_ID`, `sourceType: WordPressPostSource::SOURCE_TYPE` / `WordPressTaxonomySource::SOURCE_TYPE`, `keyField: 'object_id'` via a small wrapper that reads `object_id` as the lookup key) to get the destination uuid, followed by
-- Your own path-alias resolution to turn that uuid into a URL (this package does not ship URL/path-alias resolution — see the separate `waaseyaa/path` wiring in your application).
+- Your own path-alias resolution to turn that uuid into a URL — see "URL preservation" below for the package's stock `WpPostsToPathAliases` / `IdMapMediaUrlResolver` pieces (G-020); menu items pointing at posts/terms can reuse the same `path_alias` rows those produce.
 
 **Parent links (`parent_wp_id`).** `WpMenusToMenuLinks` deliberately leaves `parent_id` out of its process map. WXR does not guarantee nav items appear parent-before-child in document order, so a single streaming pass through `WpMenusToMenuLinks` cannot promise a parent's id-map row exists yet when its child is processed — a naive `LookupProcessor` on `parent_wp_id` would intermittently miss. Two supported approaches:
 
@@ -195,6 +195,87 @@ return [
 2. **Post-import patch step.** Run the default single-pass migration, then a small one-off script that reads each imported `menu_link`'s original `parent_wp_id` (round-tripped through your destination, e.g. stashed in a temporary field) and sets `parent_id` via `MigrationIdMap::lookupDestination()` directly.
 
 Either way, verify the result in your admin — nav hierarchy is easy to eyeball once a handful of top-level items render correctly.
+
+---
+
+## URL preservation (path aliases + media URL rewriting) (optional, G-020)
+
+Without this step, WordPress's hierarchical URLs collapse: a permalink like `/members/rht/` has no destination-side equivalent unless you build one, so links to it 404 (or fall back to a bare content-id URL) after the migration. Similarly, in-body `<img>`/`<a>` references to `/wp-content/uploads/...` stay pointed at the old WP host unless a resolver is wired for {@see `WordPressMediaRewriteUrl`} — a real field migration hit both gaps: 5 flat-slug collisions in the URL map (hierarchical paths flattened to their bare slug, colliding when two posts shared a slug under different parents) and 97 in-body upload references left unrewritten across 32 post bodies.
+
+This package ships two stock pieces that close both gaps, both consulting the `migration_id_map` produced by your other migrations rather than requiring new bookkeeping.
+
+### Path aliases: `WpPostsToPathAliases`
+
+Targets `waaseyaa/path`'s `path_alias` entity type. **Must run after** your posts migration (`WpPostsToArticles` or your renamed clone of it) — its `path` field looks up that migration's id-map, so the posts have to exist first.
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToPathAliases;
+
+$postsDest = /* your EntityDestination for the "article"/"node" entity */;
+$pathAliasDest = /* your EntityDestination for the "path_alias" entity */;
+
+// Bridges a destination entity's uuid (from the posts migration's id-map)
+// to the serial/system id your `path` field needs (e.g. "/node/42"). How
+// you implement this depends on your entity storage — typically a
+// `$repository->find($uuid)->id()` call, or a small in-memory map built
+// while writing posts.
+$uuidToId = function (string $entityType, string $uuid): int|string|null {
+    return $yourEntityRepository->findByUuid($entityType, $uuid)?->id();
+};
+
+return [
+    // ...users, terms, media, posts as before...
+    (new WpPostsToArticles($reader, $postsDest))->definition(),
+    (new WpPostsToPathAliases($reader, $pathAliasDest, $uuidToId))->definition(),
+];
+```
+
+What you get per post/page:
+
+- `alias` — the normalized permalink path (`https://old-site.example/members/rht/` → `/members/rht`). Domain and query string are always stripped; a trailing slash is stripped too. Permalinks with no real path component — WordPress's "Plain" structure (`?p=100`) or an unrecognised custom-post-type rewrite (`?project=104`) — produce `alias: null`, since there is no hierarchical segment to preserve and aliasing every such post to the bare `/` root would collide. The bare homepage link also produces `null` — front-page aliasing is a site-level decision, not a per-post one.
+- `path` — the destination system path (`/node/42`) built by chaining a `LookupProcessor` against the posts migration's id-map (which yields a destination *uuid*) into your `$uuidToId` closure. Change the id-map lookup target with the `postsMigrationId` constructor argument if you renamed/cloned `WpPostsToArticles`; change the prefix with `systemPathPrefix` (default `/node/`) if your destination entity type isn't `node`.
+- `langcode` (default `'en'`, override via the constructor) and `status` (always `true`).
+
+The plugin does not attempt to detect "this alias equals the destination's own auto-generated slug and should be skipped" — the migration platform's process-plugin chain has no per-record skip primitive (only the runner-level dry-run / idempotent-hash-match skips exist), and the plugin has no visibility into your destination's slugging algorithm anyway. A redundant alias that happens to match the auto-slug is harmless; re-running the migration does not duplicate rows (the id-map keeps writes idempotent).
+
+### Media URL rewriting: `IdMapMediaUrlResolver`
+
+`WordPressMediaRewriteUrl` (used in your posts migration's `content` process chain, see Step 4) needs a `\Closure(string $relativePath): ?string` resolver — the package ships one, `Media\IdMapMediaUrlResolver`, built from your media migration's id-map instead of requiring you to write that lookup yourself.
+
+**Must run after your media migration** (`WpMediaToEntities`) has populated the id-map — a body referencing an attachment that hasn't been migrated yet resolves to `null` (left untouched, with a warning), not an error.
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Media\IdMapMediaUrlResolver;
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressMediaRewriteUrl;
+use Waaseyaa\Migrate\Source\WordPress\Source\WordPressMediaSource;
+use Waaseyaa\Migration\MigrationIdMap;
+
+$idMap = new MigrationIdMap($database); // the same DatabaseInterface your app already wires
+
+// Uploads-relative path (e.g. "2025/05/logo.png") -> WordPress attachment id,
+// built straight from the WXR export.
+$pathIndex = IdMapMediaUrlResolver::indexFromSource(new WordPressMediaSource($reader));
+
+$mediaUrlResolver = new IdMapMediaUrlResolver(
+    idMap: $idMap,
+    mediaMigrationId: WpMediaToEntities::MIGRATION_ID,
+    pathToAttachmentId: $pathIndex,
+    // App decides the final URL shape for a migrated media entity.
+    uuidToUrl: fn (string $entityType, string $uuid): ?string =>
+        $yourEntityRepository->findByUuid($entityType, $uuid)?->publicUrl(),
+);
+
+$mediaRewrite = new WordPressMediaRewriteUrl($mediaUrlResolver->resolver());
+
+// Wire $mediaRewrite into WpPostsToArticles's constructor as before (Step 4).
+```
+
+Any miss along the chain (path not in the index, attachment not yet migrated, `uuidToUrl` itself returns `null`) is logged as a warning and the original WP-hosted URL is left in place — safe to re-run once the gap is closed (e.g. after the media migration catches up).
+
+### Run order
+
+Putting it all together, the full dependency chain with both add-ons is: **users → terms → media → posts → comments → path aliases**, with media URL rewriting wired into the posts migration's `content` chain (so it runs *during* the posts migration, consuming whatever the media migration already wrote) and `WpPostsToPathAliases` running strictly after posts.
 
 ---
 

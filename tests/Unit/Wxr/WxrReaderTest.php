@@ -108,6 +108,47 @@ it('extracts <category> tags into the post terms array', function () {
     ]);
 });
 
+it('captures the item <link> permalink under _extra.link (G-020)', function () {
+    $fixture = __DIR__ . '/../../../testing/Fixtures/small-site.xml';
+    $reader = new WxrReader($fixture);
+
+    $firstPost = null;
+    $about = null;
+    foreach ($reader->records() as $r) {
+        if ($r['type'] !== 'post') {
+            continue;
+        }
+        if ($r['data']['slug'] === 'first-post') {
+            $firstPost = $r['data'];
+        }
+        if ($r['data']['slug'] === 'about') {
+            $about = $r['data'];
+        }
+    }
+
+    expect($firstPost)->not->toBeNull();
+    expect($firstPost['_extra']['link'])->toBe('https://example.test/2025/05/first-post/');
+
+    expect($about)->not->toBeNull();
+    expect($about['_extra']['link'])->toBe('https://example.test/about/');
+});
+
+it('captures the attachment <link> permalink under _extra.link too (G-020)', function () {
+    $fixture = __DIR__ . '/../../../testing/Fixtures/small-site.xml';
+    $reader = new WxrReader($fixture);
+
+    $logo = null;
+    foreach ($reader->records() as $r) {
+        if ($r['type'] === 'attachment' && $r['data']['slug'] === 'logo') {
+            $logo = $r['data'];
+            break;
+        }
+    }
+
+    expect($logo)->not->toBeNull();
+    expect($logo['_extra']['link'])->toBe('https://example.test/wp-content/uploads/2025/05/logo.png');
+});
+
 it('falls back to post_date when post_date_gmt is sentinel', function () {
     $fixture = __DIR__ . '/../../../testing/Fixtures/small-site.xml';
     $reader = new WxrReader($fixture);
