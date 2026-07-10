@@ -131,6 +131,129 @@ Build a distinct `MigrationDefinition` per source (clone `WpPostsToArticles`'s `
 
 ---
 
+## Migrating ALL users (database source) (G-018)
+
+### Why WXR can't carry every account
+
+`WpUsersToAccounts` defaults to `Source\WordPressUserSource`, which reads
+`<wp:author>` elements out of your WXR export. WXR is a *content* export
+format: WordPress only writes an `<wp:author>` element for accounts that
+authored at least one post. Every other registered account — most commonly
+member/subscriber accounts that only ever logged in to view gated content —
+is invisible to the WXR file, along with any state that lives solely on the
+account row or its usermeta (a consent checkbox, a "frozen"/disabled flag,
+membership-plugin metadata). On a real site this can be the overwhelming
+majority of accounts (one reference migration saw 2 of 76 users survive a
+WXR-only pass).
+
+`Source\WordPressDbUserSource` reads `{prefix}users` /
+`{prefix}usermeta` directly from the WordPress database instead, so every
+account migrates — not just post authors.
+
+### Connecting to the WordPress database
+
+Point a `Waaseyaa\Database\DBALDatabase` at the WordPress database itself
+(or a restored copy of its dump — never point a migration tool at a
+production database with write access it doesn't need):
+
+```php
+use Doctrine\DBAL\DriverManager;
+use Waaseyaa\Database\DBALDatabase;
+
+$wpDb = new DBALDatabase(DriverManager::getConnection([
+    'driver'   => 'pdo_mysql',
+    'host'     => 'localhost',
+    'dbname'   => 'wordpress',
+    'user'     => 'wp_migration_reader', // read-only DB user — recommended
+    'password' => getenv('WP_DB_PASSWORD'),
+]));
+```
+
+**Recommended:** create a dedicated MySQL/MariaDB user with `SELECT`-only
+grants on the WordPress database for this connection. The source never
+writes to it, and scoping the credential to read-only limits the blast
+radius if it leaks.
+
+### Wiring the source into `WpUsersToAccounts`
+
+`WpUsersToAccounts`'s constructor takes an optional fourth argument,
+`?SourcePluginInterface $source`. Pass a configured
+`WordPressDbUserSource` and the factory uses it instead of the WXR default
+— everything else about the migration (process map, `must_reset_password`,
+password discard) stays the same:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpUsersToAccounts;
+use Waaseyaa\Migrate\Source\WordPress\Source\WordPressDbUserSource;
+use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
+
+$dbSource = new WordPressDbUserSource(
+    database: $wpDb,
+    tablePrefix: 'wp_', // match your install's table prefix
+    metaFields: [
+        // record field name => wp_usermeta.meta_key (placeholder — replace
+        // with your membership plugin's actual keys, e.g. MemberPress's
+        // custom consent/status fields)
+        'consent'  => 'mepr-custom-consent',
+        'disabled' => 'mepr-account-status',
+    ],
+);
+
+$accountsDefinition = (new WpUsersToAccounts(
+    reader: new WxrReader($wxrPath), // still required by the constructor; unused when $source is set
+    destination: $accountDest,
+    source: $dbSource,
+))->definition();
+```
+
+`WpUsersToAccounts` does **not** hardcode any site-specific `metaFields`
+mapping — the factory has no idea what your membership plugin calls its
+consent or disabled flags. Add the extra destination fields to your own
+copy of the process map (clone the factory's `definition()` body per the
+[customization guide](customization.md)) once you know your source field
+names:
+
+```php
+process: [
+    // ...the default fields WpUsersToAccounts already builds...
+    'consent'  => 'consent',
+    'disabled' => ['disabled', new YourStatusToBoolProcessor()], // e.g. a status-code -> bool mapping step you write
+],
+```
+
+`disabled`/status fields are rarely booleans at the source (WordPress core's
+own `user_status` column, and most membership plugins, use small integers or
+string codes) — write a small process step that maps your plugin's specific
+status values to whatever shape your destination account entity expects.
+
+### Id-map continuity — safe to run after a WXR pass
+
+`WordPressDbUserSource::SOURCE_TYPE` is pinned to the same `'wp_user'`
+value `WordPressUserSource` uses, and `sourceIdFor()` keys the `SourceId`
+identically (`['id' => (string) $ID]`). This means:
+
+- Running the DB source against the **same WordPress site** after an
+  earlier WXR-based `wp_users_to_accounts` run **updates** the id-map rows
+  the WXR pass already created for post authors — it does not create
+  duplicate accounts for them.
+- Every other WordPress user (the ones WXR never saw) gets a brand-new
+  id-map row on that same run.
+
+In practice: run your WXR-based migration first as usual, then run
+`wp_users_to_accounts` a second time with the DB source wired in to pick up
+every remaining account. Both orders are safe — the id-map upsert is keyed
+on the WordPress numeric user id either way, not on run order.
+
+### Password and reset-gate policy (inherited, unchanged)
+
+The DB source does not read or emit `user_pass` at all. `WpUsersToAccounts`
+already discards WordPress password hashes and sets
+`must_reset_password = true` for every account regardless of source — the
+same first-login reset policy applies to accounts that only ever existed in
+the database, not in any WXR export.
+
+---
+
 ## Step 5 — Run the import (≈5–60 min)
 
 ```bash
