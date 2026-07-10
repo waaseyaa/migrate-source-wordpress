@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+    <title>Menu fixture</title>
+    <link>https://example.test</link>
+    <description>Menu fixture for WP5 (G-022) — shapes verified against the real Sheguiandah FN WXR corpus.</description>
+    <pubDate>Fri, 10 Jul 2026 00:00:00 +0000</pubDate>
+    <language>en-US</language>
+    <wp:wxr_version>1.2</wp:wxr_version>
+    <wp:base_site_url>https://example.test</wp:base_site_url>
+    <wp:base_blog_url>https://example.test</wp:base_blog_url>
+
+    <wp:term>
+        <wp:term_id>10</wp:term_id>
+        <wp:term_taxonomy>nav_menu</wp:term_taxonomy>
+        <wp:term_slug>menu</wp:term_slug>
+        <wp:term_name><![CDATA[Menu]]></wp:term_name>
+    </wp:term>
+    <wp:term>
+        <wp:term_id>14</wp:term_id>
+        <wp:term_taxonomy>nav_menu</wp:term_taxonomy>
+        <wp:term_slug>portal-menu</wp:term_slug>
+        <wp:term_name><![CDATA[Portal Menu]]></wp:term_name>
+    </wp:term>
+
+    <!-- Custom link item, top-level, "Menu" -->
+    <item>
+        <title><![CDATA[Events]]></title>
+        <link>https://example.test/2024/05/29/upcoming-notices/</link>
+        <pubDate>Mon, 19 Feb 2024 20:11:43 +0000</pubDate>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <guid isPermaLink="false">https://example.test/?p=428</guid>
+        <description/>
+        <content:encoded><![CDATA[]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>428</wp:post_id>
+        <wp:post_date>2024-05-29 23:59:19</wp:post_date>
+        <wp:post_date_gmt>2024-02-19 20:11:43</wp:post_date_gmt>
+        <wp:post_modified>2024-05-29 23:59:19</wp:post_modified>
+        <wp:post_modified_gmt>2024-05-30 03:59:19</wp:post_modified_gmt>
+        <wp:comment_status>closed</wp:comment_status>
+        <wp:ping_status>closed</wp:ping_status>
+        <wp:post_name>upcoming-notices</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_parent>0</wp:post_parent>
+        <wp:menu_order>13</wp:menu_order>
+        <wp:post_type>nav_menu_item</wp:post_type>
+        <wp:post_password/>
+        <wp:is_sticky>0</wp:is_sticky>
+        <category domain="nav_menu" nicename="menu"><![CDATA[Menu]]></category>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_type</wp:meta_key>
+            <wp:meta_value><![CDATA[custom]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_menu_item_parent</wp:meta_key>
+            <wp:meta_value><![CDATA[0]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object_id</wp:meta_key>
+            <wp:meta_value><![CDATA[428]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object</wp:meta_key>
+            <wp:meta_value><![CDATA[custom]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_target</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_url</wp:meta_key>
+            <wp:meta_value><![CDATA[/events/]]></wp:meta_value>
+        </wp:postmeta>
+    </item>
+
+    <!-- Page item, top-level parent, "Menu" -->
+    <item>
+        <title><![CDATA[]]></title>
+        <link>https://example.test/2024/05/29/167/</link>
+        <pubDate>Thu, 15 Feb 2024 00:01:37 +0000</pubDate>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <guid isPermaLink="false">https://example.test/2024/02/14/</guid>
+        <description/>
+        <content:encoded><![CDATA[ ]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>169</wp:post_id>
+        <wp:post_date>2024-05-29 23:59:19</wp:post_date>
+        <wp:post_date_gmt>2024-02-15 00:01:37</wp:post_date_gmt>
+        <wp:post_modified>2026-05-29 20:43:39</wp:post_modified>
+        <wp:post_modified_gmt>2026-05-30 00:43:39</wp:post_modified_gmt>
+        <wp:comment_status>closed</wp:comment_status>
+        <wp:ping_status>closed</wp:ping_status>
+        <wp:post_name>169</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_parent>0</wp:post_parent>
+        <wp:menu_order>2</wp:menu_order>
+        <wp:post_type>nav_menu_item</wp:post_type>
+        <wp:post_password/>
+        <wp:is_sticky>0</wp:is_sticky>
+        <category domain="nav_menu" nicename="menu"><![CDATA[Menu]]></category>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_type</wp:meta_key>
+            <wp:meta_value><![CDATA[post_type]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_menu_item_parent</wp:meta_key>
+            <wp:meta_value><![CDATA[0]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object_id</wp:meta_key>
+            <wp:meta_value><![CDATA[76]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object</wp:meta_key>
+            <wp:meta_value><![CDATA[page]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_target</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_url</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+    </item>
+
+    <!-- Child page item, parent = post_id 169, "Menu" -->
+    <item>
+        <title><![CDATA[Community]]></title>
+        <link>https://example.test/2024/05/29/175/</link>
+        <pubDate>Mon, 19 Feb 2024 21:00:00 +0000</pubDate>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <guid isPermaLink="false">https://example.test/2024/02/19/</guid>
+        <description/>
+        <content:encoded><![CDATA[ ]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>175</wp:post_id>
+        <wp:post_date>2024-05-29 23:59:19</wp:post_date>
+        <wp:post_date_gmt>2024-02-19 21:00:00</wp:post_date_gmt>
+        <wp:post_modified>2024-05-29 23:59:19</wp:post_modified>
+        <wp:post_modified_gmt>2024-05-30 03:59:19</wp:post_modified_gmt>
+        <wp:comment_status>closed</wp:comment_status>
+        <wp:ping_status>closed</wp:ping_status>
+        <wp:post_name>175</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_parent>0</wp:post_parent>
+        <wp:menu_order>3</wp:menu_order>
+        <wp:post_type>nav_menu_item</wp:post_type>
+        <wp:post_password/>
+        <wp:is_sticky>0</wp:is_sticky>
+        <category domain="nav_menu" nicename="menu"><![CDATA[Menu]]></category>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_type</wp:meta_key>
+            <wp:meta_value><![CDATA[post_type]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_menu_item_parent</wp:meta_key>
+            <wp:meta_value><![CDATA[169]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object_id</wp:meta_key>
+            <wp:meta_value><![CDATA[80]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object</wp:meta_key>
+            <wp:meta_value><![CDATA[page]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_target</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_url</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+    </item>
+
+    <!-- Category (taxonomy) item in the second menu, "Portal Menu" -->
+    <item>
+        <title><![CDATA[News]]></title>
+        <link>https://example.test/category/news/</link>
+        <pubDate>Mon, 19 Feb 2024 21:05:00 +0000</pubDate>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <guid isPermaLink="false">https://example.test/2024/02/19/</guid>
+        <description/>
+        <content:encoded><![CDATA[ ]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>190</wp:post_id>
+        <wp:post_date>2024-05-29 23:59:19</wp:post_date>
+        <wp:post_date_gmt>2024-02-19 21:05:00</wp:post_date_gmt>
+        <wp:post_modified>2024-05-29 23:59:19</wp:post_modified>
+        <wp:post_modified_gmt>2024-05-30 03:59:19</wp:post_modified_gmt>
+        <wp:comment_status>closed</wp:comment_status>
+        <wp:ping_status>closed</wp:ping_status>
+        <wp:post_name>190</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_parent>0</wp:post_parent>
+        <wp:menu_order>1</wp:menu_order>
+        <wp:post_type>nav_menu_item</wp:post_type>
+        <wp:post_password/>
+        <wp:is_sticky>0</wp:is_sticky>
+        <category domain="nav_menu" nicename="portal-menu"><![CDATA[Portal Menu]]></category>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_type</wp:meta_key>
+            <wp:meta_value><![CDATA[taxonomy]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_menu_item_parent</wp:meta_key>
+            <wp:meta_value><![CDATA[0]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object_id</wp:meta_key>
+            <wp:meta_value><![CDATA[24]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_object</wp:meta_key>
+            <wp:meta_value><![CDATA[category]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_target</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+        <wp:postmeta>
+            <wp:meta_key>_menu_item_url</wp:meta_key>
+            <wp:meta_value><![CDATA[]]></wp:meta_value>
+        </wp:postmeta>
+    </item>
+
+    <!-- Ordinary post (not a nav_menu_item) — must be dropped by the menu source -->
+    <item>
+        <title><![CDATA[Regular post]]></title>
+        <link>https://example.test/regular-post/</link>
+        <dc:creator><![CDATA[admin]]></dc:creator>
+        <content:encoded><![CDATA[Body]]></content:encoded>
+        <wp:post_id>500</wp:post_id>
+        <wp:post_date>2024-05-01 00:00:00</wp:post_date>
+        <wp:post_date_gmt>2024-05-01 00:00:00</wp:post_date_gmt>
+        <wp:post_name>regular-post</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_parent>0</wp:post_parent>
+        <wp:post_type>post</wp:post_type>
+        <wp:post_password/>
+    </item>
+</channel>
+</rss>

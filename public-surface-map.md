@@ -28,6 +28,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressMediaSource` | Source plugin | true | WP05 |
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressPostSource` | Source plugin | true | WP06 |
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressCommentSource` | Source plugin | true | WP07 |
+| `Waaseyaa\Migrate\Source\WordPress\Source\WordPressMenuSource` | Source plugin | true | G-022 |
 
 ### Process plugins
 
@@ -60,6 +61,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpEventsToNodes` | MigrationDefinition factory | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpOrganizersToNodes` | MigrationDefinition factory | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpVenuesToNodes` | MigrationDefinition factory | true | G-016 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks` | MigrationDefinition factory (example) | true | G-022 |
 
 ### Exceptions
 
@@ -111,6 +113,7 @@ Each source plugin pins its `SourceId::$sourceType` value as a class constant so
 | `WordPressMediaSource` | `SOURCE_TYPE` | `wp_media` |
 | `WordPressPostSource` | `SOURCE_TYPE` | `wp_post` |
 | `WordPressCommentSource` | `SOURCE_TYPE` | `wp_comment` |
+| `WordPressMenuSource` | `SOURCE_TYPE` | `wp_menu_item` |
 
 ### Migration id constants
 
@@ -121,6 +124,7 @@ Each source plugin pins its `SourceId::$sourceType` value as a class constant so
 | `WpMediaToEntities` | `wp_media_to_entities` |
 | `WpPostsToArticles` | `wp_posts_to_articles` |
 | `WpCommentsToEngagement` | `wp_comments_to_engagement` |
+| `WpMenusToMenuLinks` | `wp_menus_to_menu_links` |
 
 ## Versioning
 

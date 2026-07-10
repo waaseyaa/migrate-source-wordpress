@@ -159,6 +159,45 @@ Browse the imported content in your Waaseyaa admin:
 
 ---
 
+## Menus (optional, G-022)
+
+WordPress nav menu items (`nav_menu_item` posts) are **not** part of the five default migrations in Step 4 — wire them separately once your content migrations are working, since menu links reference the posts/pages/terms those migrations create.
+
+Add `WpMenusToMenuLinks` to your bootstrap file, targeting `waaseyaa/menu`'s `menu_link` entity type:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks;
+
+$menuLinkDest = /* your EntityDestination for the "menu_link" entity */;
+
+return [
+    // ...the five default migrations from Step 4...
+    (new WpMenusToMenuLinks($reader, $menuLinkDest))->definition(),
+];
+```
+
+### What comes across automatically
+
+- `title`, `weight` (from WordPress's menu-order), and `enabled` (always `true` — WordPress doesn't export a disabled state for nav items).
+- `url` — populated only for **custom link** items (`_menu_item_type = custom`); this is the operator-typed URL, copied verbatim.
+- `menu_name` — the menu this item belongs to, taken from the item's `nav_menu` term slug (e.g. `menu`, `portal-menu` — a WXR export commonly contains more than one menu). `menu_name` is also `menu_link`'s bundle, so this one field both classifies and buckets each link into its menu.
+
+### What needs app-side wiring
+
+**Page/post/category links (`object_type` + `object_id`).** WordPress nav items that point at a page, post, or term (`_menu_item_type` of `post_type` or `taxonomy`) carry `null` for `url` and instead expose `object_type` (`page`, `post`, a custom post type, `category`, `post_tag`, …) and `object_id` (the WordPress post/term id). `WordPressMenuSource` cannot resolve these to a destination URL by itself — that needs either:
+
+- A `Waaseyaa\Migration\Plugin\Process\LookupProcessor` against the sibling posts/terms migration's id-map (`migration: WpPostsToArticles::MIGRATION_ID` or `WpTermsToTaxonomy::MIGRATION_ID`, `sourceType: WordPressPostSource::SOURCE_TYPE` / `WordPressTaxonomySource::SOURCE_TYPE`, `keyField: 'object_id'` via a small wrapper that reads `object_id` as the lookup key) to get the destination uuid, followed by
+- Your own path-alias resolution to turn that uuid into a URL (this package does not ship URL/path-alias resolution — see the separate `waaseyaa/path` wiring in your application).
+
+**Parent links (`parent_wp_id`).** `WpMenusToMenuLinks` deliberately leaves `parent_id` out of its process map. WXR does not guarantee nav items appear parent-before-child in document order, so a single streaming pass through `WpMenusToMenuLinks` cannot promise a parent's id-map row exists yet when its child is processed — a naive `LookupProcessor` on `parent_wp_id` would intermittently miss. Two supported approaches:
+
+1. **Two-pass import.** Run `WpMenusToMenuLinks` twice. The first pass populates the id-map for every nav item (parents included, since they're ordinary `write()` calls regardless of hierarchy). The second pass adds a `LookupProcessor` for `parent_id` (self-referential: `migration: WpMenusToMenuLinks::MIGRATION_ID`, `sourceType: WordPressMenuSource::SOURCE_TYPE`, `keyField: 'id'` reading `parent_wp_id`) — by the second pass every parent already has an id-map row, so the lookup always hits.
+2. **Post-import patch step.** Run the default single-pass migration, then a small one-off script that reads each imported `menu_link`'s original `parent_wp_id` (round-tripped through your destination, e.g. stashed in a temporary field) and sets `parent_id` via `MigrationIdMap::lookupDestination()` directly.
+
+Either way, verify the result in your admin — nav hierarchy is easy to eyeball once a handful of top-level items render correctly.
+
+---
+
 ## Troubleshooting
 
 ### "WXR file not found" or "WXR file is not readable"
