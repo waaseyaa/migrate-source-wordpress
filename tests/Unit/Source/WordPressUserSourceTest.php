@@ -130,3 +130,42 @@ it('skips non-user records (terms, posts, comments)', function () {
         expect($record->sourceType)->toBe('wp_user');
     }
 });
+
+it('loginIndex builds a login => wp:author_id map from the WXR authors', function () {
+    $index = WordPressUserSource::loginIndex(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'));
+
+    expect($index)->toBe(['admin' => 1, 'jane' => 2]);
+});
+
+it('loginIndex keeps the first wp:author_id seen for a duplicate login', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_user_login_index_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<wp:author>
+<wp:author_id>1</wp:author_id>
+<wp:author_login>dupe</wp:author_login>
+<wp:author_email>a@example.test</wp:author_email>
+<wp:author_display_name>A</wp:author_display_name>
+<wp:author_role>author</wp:author_role>
+</wp:author>
+<wp:author>
+<wp:author_id>2</wp:author_id>
+<wp:author_login>dupe</wp:author_login>
+<wp:author_email>b@example.test</wp:author_email>
+<wp:author_display_name>B</wp:author_display_name>
+<wp:author_role>author</wp:author_role>
+</wp:author>
+</channel>
+</rss>
+XML);
+
+    try {
+        $index = WordPressUserSource::loginIndex(new WxrReader($fixturePath));
+        expect($index)->toBe(['dupe' => 1]);
+    } finally {
+        @unlink($fixturePath);
+    }
+});

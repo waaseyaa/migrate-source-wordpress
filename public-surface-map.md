@@ -43,6 +43,10 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\PageBuilder\ElementorTreeDecoder` | Concrete class (Elementor `_elementor_data` decoding strategy, consumed by `WordPressBuilderContentDecode`) | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPermalinkToAlias` | Process plugin | true | G-020 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\UuidToSystemPathProcessor` | Process plugin | true | G-020 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressEntityRefResolve` | Process plugin | true | G-019 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressAuthorIdResolve` | Process plugin | true | G-019 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressTermsResolve` | Process plugin | true | G-019 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressTermParentResolve` | Process plugin | true | G-019 |
 
 ### Media copy
 
@@ -68,6 +72,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpVenuesToNodes` | MigrationDefinition factory | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks` | MigrationDefinition factory (example) | true | G-022 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToPathAliases` | MigrationDefinition factory (example) | true | G-020 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\ReferenceResolutionOptions` | DTO | true | G-019 |
 
 ### Exceptions
 

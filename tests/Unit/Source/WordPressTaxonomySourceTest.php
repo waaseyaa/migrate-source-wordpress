@@ -165,3 +165,44 @@ it('skips non-term records', function () {
         expect($record->sourceType)->toBe('wp_term');
     }
 });
+
+it('slugIndex builds a "taxonomy:slug" => wp:term_id map from every term', function () {
+    $index = WordPressTaxonomySource::slugIndex(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'));
+
+    expect($index)->toBe([
+        'category:news' => 10,
+        'category:announcements' => 11,
+        'category:guides' => 12,
+        'category:uncategorized' => 13,
+        'post_tag:php' => 20,
+        'post_tag:wordpress' => 21,
+    ]);
+});
+
+it('slugIndex keeps same-named slugs distinct across taxonomies', function () {
+    $fixturePath = writeTempWxr(<<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<wp:category>
+<wp:term_id>1</wp:term_id>
+<wp:category_nicename>news</wp:category_nicename>
+<wp:cat_name>News</wp:cat_name>
+</wp:category>
+<wp:tag>
+<wp:term_id>2</wp:term_id>
+<wp:tag_slug>news</wp:tag_slug>
+<wp:tag_name>News</wp:tag_name>
+</wp:tag>
+</channel>
+</rss>
+XML);
+
+    try {
+        $index = WordPressTaxonomySource::slugIndex(new WxrReader($fixturePath));
+        expect($index)->toBe(['category:news' => 1, 'post_tag:news' => 2]);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
