@@ -76,6 +76,63 @@ Nested shortcodes recurse to depth 4. For deeper nests, pre-process content in y
 
 ---
 
+## Customizing page-builder content decoding (Elementor / Gutenberg)
+
+`Process\WordPressBuilderContentDecode` (G-013/G-029) runs first in
+`Migration\WpPostsToArticles`'s default `content` chain, hardcoded (it has no
+operator-tunable state in the default factory — see below to override it).
+Its contract:
+
+- If the source record's `_extra.postmeta._elementor_data` postmeta is
+  present and decodes to at least one renderable block, the decoded HTML
+  **replaces** the incoming `content` value.
+- If `_elementor_data` is absent, empty, or `'[]'`, `content` passes through
+  unchanged.
+- If `_elementor_data` is present but malformed JSON, or decodes to a tree
+  with no renderable blocks, `content` passes through unchanged and a
+  `warning`-level log entry is emitted with `migration_id` and
+  `destination_field` context — this is the "graceful degradation" path;
+  the import never fails because of a single bad payload.
+- Gutenberg block-delimiter comments (`<!-- wp:name ... -->` /
+  `<!-- /wp:name -->`, including the void `/-->` form) are always stripped
+  from the resulting HTML, whether or not Elementor decoding ran, preserving
+  the inner markup.
+
+The Elementor decoding strategy itself lives in a separate class,
+`PageBuilder\ElementorTreeDecoder`, which the plugin constructs with a
+default instance. To supply your own logger (e.g. to route warnings into
+your application's structured logging) or a customized decoder, subclass
+`WpPostsToArticles` and override `definition()`'s content chain (see "Renaming
+the example posts migration" → Option B above) rather than passing
+constructor arguments — the plugin is intentionally not one of
+`WpPostsToArticles`'s constructor parameters, since it has no per-operator
+configuration in the shipped example:
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressBuilderContentDecode;
+use Waaseyaa\Migrate\Source\WordPress\PageBuilder\ElementorTreeDecoder;
+
+$builderDecode = new WordPressBuilderContentDecode(
+    elementorDecoder: new ElementorTreeDecoder(),
+    logger: $myPsrLogger,
+);
+```
+
+then splice `$builderDecode` into your subclass's `content` chain in place of
+`new WordPressBuilderContentDecode()`.
+
+`PageBuilder\ElementorTreeDecoder`, `PageBuilder\BlockRenderer`, and
+`PageBuilder\HtmlCleaner` are a deliberately narrow port of the framework's
+former `waaseyaa/page-builder` package's `ElementorDecoder` decoding
+strategy: no decoder registry, no `DecodeRequest`/`DecodedPage` envelope, and
+no scoped-component (`<style>`-bearing pasted HTML) handling — a
+style-bearing widget is cleaned like any other rich text instead of being
+promoted to an owned component. If you need that narrower feature, decode
+`_elementor_data` yourself with a custom `ProcessPluginInterface`
+implementation in its place.
+
+---
+
 ## Configuring CDN host allowlist for media URL rewrites
 
 `WordPressMediaRewriteUrl` rewrites `wp-content/uploads/...` references in post content. By default it rewrites references on **any** host. To restrict to a known set (the canonical WP hostname plus any CDN), pass `cdnHosts`:
