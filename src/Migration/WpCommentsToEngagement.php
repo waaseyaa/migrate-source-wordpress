@@ -9,6 +9,7 @@ use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\MigrationDefinition;
 use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
 use Waaseyaa\Migration\Plugin\Process\LookupProcessor;
+use Waaseyaa\Migration\Plugin\Process\TypeCoerceProcessor;
 
 /**
  * Default WordPress comments → destination engagement migration factory.
@@ -56,18 +57,35 @@ final class WpCommentsToEngagement
                 'approved' => 'approved',
                 'comment_type' => 'comment_type',
                 'user_login' => 'user_login',
-                'post_id' => new LookupProcessor(
-                    sourceField: 'post_id',
-                    migration: WpPostsToArticles::MIGRATION_ID,
-                    sourceType: 'wp_post',
-                    keyField: 'id',
-                ),
-                'parent_id' => new LookupProcessor(
-                    sourceField: 'parent_id',
-                    migration: self::MIGRATION_ID,
-                    sourceType: 'wp_comment',
-                    keyField: 'id',
-                ),
+                'post_id' => [
+                    'post_id',
+                    // WordPressCommentSource emits post_id as an int;
+                    // LookupProcessor does not normalize types and
+                    // WordPressPostSource::sourceIdFor() keys its SourceId
+                    // with a string id — coerce first so the hash matches.
+                    new TypeCoerceProcessor('string'),
+                    new LookupProcessor(
+                        sourceField: 'post_id',
+                        migration: WpPostsToArticles::MIGRATION_ID,
+                        sourceType: 'wp_post',
+                        keyField: 'id',
+                    ),
+                ],
+                'parent_id' => [
+                    'parent_id',
+                    // WordPressCommentSource emits parent_id as an int (or
+                    // null); same type mismatch as post_id above, against
+                    // this migration's own wp_comment id-map. `null` passes
+                    // through TypeCoerceProcessor unchanged (top-level
+                    // comments correctly resolve to null, not a miss).
+                    new TypeCoerceProcessor('string'),
+                    new LookupProcessor(
+                        sourceField: 'parent_id',
+                        migration: self::MIGRATION_ID,
+                        sourceType: 'wp_comment',
+                        keyField: 'id',
+                    ),
+                ],
             ],
             destination: $this->destination,
             dependencies: [

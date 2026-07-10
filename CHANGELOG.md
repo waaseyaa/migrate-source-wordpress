@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`WpCommentsToEngagement` id-map lookup type mismatch**: `WordPressCommentSource::normalize()` emits `post_id` as `int` and `parent_id` as `int|null`, but every `SourceId` in this package (including `WordPressPostSource::sourceIdFor()` and `WordPressCommentSource::sourceIdFor()` itself) keys its id-map row with a string id. `SourceId` hashing is type-sensitive, so feeding the raw int straight into `LookupProcessor` hash-missed on every single comment record — `post_id` and `parent_id` silently resolved to `null` on every migrated comment, with no error surfaced. Flagged by an adversarial verifier reviewing the comments migration (which has never yet been run against a production destination — this closes the gap before it is). Fixed by chaining a `TypeCoerceProcessor('string')` ahead of both `LookupProcessor` calls, matching the established pattern already used by `WpPostsToArticles`'s `parent_ref` and `WpPostsToPathAliases`'s post lookup; `null` parent ids continue to pass through unchanged (top-level comments correctly resolve to `null`, not a miss).
+
 ## [0.1.0-alpha.2] - 2026-07-10
 
 ### Added
