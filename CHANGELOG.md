@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`WordPressPostSource` trash-skip default (G-021)**: records with `wp:status` === `trash` are now skipped by default. Pass `includeTrashed: true` to the constructor to opt back in to importing them.
+- **`WordPressPostSource` status contract pinned (G-021)**: the `status` field was already emitted as the raw WordPress status string (`publish`, `draft`, `pending`, `private`, `future`, `trash`, ...) — this is now covered by a regression test and documented as a stable contract. Consumers that need a boolean "published" flag must add an explicit status→bool mapping step in their own process map; this source will never flatten status itself.
+- **`WordPressPostSource` post_type allowlist filter (G-027)**: constructor gains `?array $postTypes = null`. When provided (a non-empty list of non-empty `post_type` strings), only matching records are emitted — enabling a per-bundle migration split (e.g. separate `WordPressPostSource` instances for `page`, `post`, and a custom `event` type feeding three distinct migrations). `null` (default) preserves the existing behavior of emitting every post type.
+
 ## [0.1.0-alpha.1] - 2026-05-14
 
 First pre-release. Cut alongside the `waaseyaa/migration ^0.1.0-alpha.179` substrate so consumers can `composer require waaseyaa/migrate-source-wordpress:^0.1.0-alpha.1` instead of pinning `dev-main`.

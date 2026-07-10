@@ -259,3 +259,216 @@ it('does not yield attachment records', function () {
         expect($record->field('post_type'))->not->toBe('attachment');
     }
 });
+
+/**
+ * @internal
+ */
+function trashAndTypesFixture(): string
+{
+    $fixturePath = sys_get_temp_dir() . '/wp_post_trash_types_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:wp="http://wordpress.org/export/1.2/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title>Live post</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Live content]]></content:encoded>
+<wp:post_id>500</wp:post_id>
+<wp:post_date>2025-06-01 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-01 00:00:00</wp:post_date_gmt>
+<wp:post_name>live-post</wp:post_name>
+<wp:status>publish</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>post</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+<item>
+<title>Trashed post</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Trashed content]]></content:encoded>
+<wp:post_id>501</wp:post_id>
+<wp:post_date>2025-06-02 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-02 00:00:00</wp:post_date_gmt>
+<wp:post_name>trashed-post</wp:post_name>
+<wp:status>trash</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>post</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+<item>
+<title>Private post</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Private content]]></content:encoded>
+<wp:post_id>502</wp:post_id>
+<wp:post_date>2025-06-03 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-03 00:00:00</wp:post_date_gmt>
+<wp:post_name>private-post</wp:post_name>
+<wp:status>private</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>post</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+<item>
+<title>Live page</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Live page content]]></content:encoded>
+<wp:post_id>503</wp:post_id>
+<wp:post_date>2025-06-04 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-04 00:00:00</wp:post_date_gmt>
+<wp:post_name>live-page</wp:post_name>
+<wp:status>publish</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>page</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+<item>
+<title>Trashed page</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Trashed page content]]></content:encoded>
+<wp:post_id>504</wp:post_id>
+<wp:post_date>2025-06-05 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-05 00:00:00</wp:post_date_gmt>
+<wp:post_name>trashed-page</wp:post_name>
+<wp:status>trash</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>page</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+<item>
+<title>Live event</title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Live event content]]></content:encoded>
+<wp:post_id>505</wp:post_id>
+<wp:post_date>2025-06-06 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-06-06 00:00:00</wp:post_date_gmt>
+<wp:post_name>live-event</wp:post_name>
+<wp:status>publish</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>event</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+</channel>
+</rss>
+XML);
+
+    return $fixturePath;
+}
+
+it('skips trashed records by default (G-021)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array((new WordPressPostSource(new WxrReader($fixturePath)))->records(), false);
+        $statuses = array_map(fn ($r) => $r->field('status'), $records);
+
+        expect($statuses)->not->toContain('trash');
+        expect($records)->toHaveCount(4);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('includes trashed records when includeTrashed is true (G-021)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array(
+            (new WordPressPostSource(new WxrReader($fixturePath), includeTrashed: true))->records(),
+            false,
+        );
+        $statuses = array_map(fn ($r) => $r->field('status'), $records);
+
+        expect($statuses)->toContain('trash');
+        expect($records)->toHaveCount(6);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('preserves raw WordPress status strings verbatim, including non-published statuses (G-021)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array(
+            (new WordPressPostSource(new WxrReader($fixturePath), includeTrashed: true))->records(),
+            false,
+        );
+        $byId = [];
+        foreach ($records as $record) {
+            $byId[$record->field('id')] = $record;
+        }
+
+        expect($byId[500]->field('status'))->toBe('publish');
+        expect($byId[501]->field('status'))->toBe('trash');
+        expect($byId[502]->field('status'))->toBe('private');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('filters by post_type allowlist when postTypes is provided (G-027)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array(
+            (new WordPressPostSource(new WxrReader($fixturePath), postTypes: ['page']))->records(),
+            false,
+        );
+        $types = array_map(fn ($r) => $r->field('post_type'), $records);
+
+        expect($types)->toBe(['page']);
+        expect($records)->toHaveCount(1);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('combines post_type filter with default trash-skip (G-021 + G-027)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array(
+            (new WordPressPostSource(new WxrReader($fixturePath), postTypes: ['post', 'page']))->records(),
+            false,
+        );
+        $ids = array_map(fn ($r) => $r->field('id'), $records);
+
+        sort($ids);
+        expect($ids)->toBe([500, 502, 503]);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('yields all post types when postTypes is null (default, no filtering)', function () {
+    $fixturePath = trashAndTypesFixture();
+
+    try {
+        $records = iterator_to_array(
+            (new WordPressPostSource(new WxrReader($fixturePath), includeTrashed: true))->records(),
+            false,
+        );
+        $types = array_unique(array_map(fn ($r) => $r->field('post_type'), $records));
+        sort($types);
+
+        expect($types)->toBe(['event', 'page', 'post']);
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('rejects empty post_type strings in the postTypes allowlist (G-027)', function () {
+    expect(fn () => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: ['post', '']))
+        ->toThrow(\InvalidArgumentException::class);
+});
+
+it('rejects an empty postTypes allowlist (G-027)', function () {
+    expect(fn () => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: []))
+        ->toThrow(\InvalidArgumentException::class);
+});
