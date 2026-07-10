@@ -29,6 +29,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressPostSource` | Source plugin | true | WP06 |
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressCommentSource` | Source plugin | true | WP07 |
 | `Waaseyaa\Migrate\Source\WordPress\Source\WordPressMenuSource` | Source plugin | true | G-022 |
+| `Waaseyaa\Migrate\Source\WordPress\Source\WordPressDbUserSource` | Source plugin (database-backed, G-018) | true | G-018 |
 
 ### Process plugins
 
@@ -125,6 +126,7 @@ Each source plugin pins its `SourceId::$sourceType` value as a class constant so
 | `WordPressPostSource` | `SOURCE_TYPE` | `wp_post` |
 | `WordPressCommentSource` | `SOURCE_TYPE` | `wp_comment` |
 | `WordPressMenuSource` | `SOURCE_TYPE` | `wp_menu_item` |
+| `WordPressDbUserSource` | `SOURCE_TYPE` | `wp_user` (pinned identical to `WordPressUserSource` — id-map continuity, G-018) |
 
 ### Migration id constants
 

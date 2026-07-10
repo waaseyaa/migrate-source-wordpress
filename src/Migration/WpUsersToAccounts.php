@@ -9,6 +9,7 @@ use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\MigrationDefinition;
 use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
 use Waaseyaa\Migration\Plugin\Process\DefaultValueProcessor;
+use Waaseyaa\Migration\Plugin\SourcePluginInterface;
 
 /**
  * Default WordPress users → destination account migration factory.
@@ -24,10 +25,23 @@ use Waaseyaa\Migration\Plugin\Process\DefaultValueProcessor;
  * first-login reset. Destinations that prefer "use temporary password" or
  * "passwordless link" override the relevant fields downstream.
  *
+ * A constructor-injected `$source` lets consumers swap in
+ * {@see \Waaseyaa\Migrate\Source\WordPress\Source\WordPressDbUserSource}
+ * (G-018) — or any other `SourcePluginInterface` emitting the same field
+ * shape — without changing this factory. Left unset, the default remains
+ * the WXR-backed `WordPressUserSource`, byte-identical to the pre-G-018
+ * behavior. This factory does not hardcode any site-specific `metaFields`
+ * mapping (e.g. a consent flag) — that composition lives on the caller's
+ * `WordPressDbUserSource` instance and, if the destination needs it, an
+ * additional `process` entry the caller adds via its own migration wiring;
+ * see docs/migrating-from-wordpress.md "Migrating ALL users (database
+ * source)".
+ *
  * @api
  *
  * @spec FR-018 — default users migration
  * @spec FR-019 — password discard + reset gate
+ * @spec G-018 — optional database-backed source seam
  */
 final class WpUsersToAccounts
 {
@@ -36,6 +50,7 @@ final class WpUsersToAccounts
     public function __construct(
         private readonly WxrReader $reader,
         private readonly DestinationPluginInterface $destination,
+        private readonly ?SourcePluginInterface $source = null,
     ) {
     }
 
@@ -43,7 +58,7 @@ final class WpUsersToAccounts
     {
         return new MigrationDefinition(
             id: self::MIGRATION_ID,
-            source: new WordPressUserSource($this->reader, self::MIGRATION_ID),
+            source: $this->source ?? new WordPressUserSource($this->reader, self::MIGRATION_ID),
             process: [
                 'username' => 'login',
                 'email' => 'email',
