@@ -4,10 +4,25 @@ declare(strict_types=1);
 
 namespace Waaseyaa\Migrate\Source\WordPress\Tests\Unit\Media;
 
+use Psr\Log\AbstractLogger;
 use Waaseyaa\Migrate\Source\WordPress\Exception\WordPressMediaCopyException;
 use Waaseyaa\Migrate\Source\WordPress\Media\MediaCopier;
 use Waaseyaa\Migrate\Source\WordPress\Media\MediaCopyOperation;
 use Waaseyaa\Migrate\Source\WordPress\Media\MediaFetcherInterface;
+
+/**
+ * @internal
+ */
+final class CollectingLogger extends AbstractLogger
+{
+    /** @var list<array{level: mixed, message: string, context: array<mixed>}> */
+    public array $records = [];
+
+    public function log($level, $message, array $context = []): void
+    {
+        $this->records[] = ['level' => $level, 'message' => (string) $message, 'context' => $context];
+    }
+}
 
 /**
  * @internal
@@ -102,6 +117,28 @@ it('throws CODE_SOURCE_NOT_FOUND when the local source is missing', function () 
         } catch (WordPressMediaCopyException $e) {
             expect($e->errorCode)->toBe(WordPressMediaCopyException::CODE_SOURCE_NOT_FOUND);
         }
+    } finally {
+        cleanupDirs([$tmp]);
+    }
+});
+
+it('warns with the resolved absolute source path before throwing on a missing local source', function () {
+    $tmp = makeTempDir();
+    try {
+        $logger = new CollectingLogger();
+        $copier = new MediaCopier(logger: $logger);
+        $missing = $tmp . '/missing.bin';
+
+        try {
+            $copier->copy($missing, $tmp . '/target.bin');
+            expect(false)->toBeTrue('expected exception');
+        } catch (WordPressMediaCopyException) {
+            // expected
+        }
+
+        expect($logger->records)->toHaveCount(1);
+        expect($logger->records[0]['level'])->toBe('warning');
+        expect($logger->records[0]['context']['source'] ?? null)->toBe($missing);
     } finally {
         cleanupDirs([$tmp]);
     }

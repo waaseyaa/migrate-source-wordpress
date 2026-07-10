@@ -33,6 +33,15 @@ use Waaseyaa\Migrate\Source\WordPress\Exception\WordPressMediaCopyException;
  * sha256 of the materialised target is verified after copy/fetch; a mismatch
  * raises {@see WordPressMediaCopyException::hashMismatch()}.
  *
+ * A missing/unreadable local source is never a silent no-op: a `warning` is
+ * logged (with the resolved absolute `source` and `target` paths) via the
+ * injected `$logger` immediately before
+ * {@see WordPressMediaCopyException::sourceNotFound()} is thrown (G-017).
+ * Callers that guard the copy call with their own `is_file()`/`is_readable()`
+ * pre-check — instead of catching the exception — bypass this warning; they
+ * should call {@see MediaCopier::copy()} unconditionally and handle/log the
+ * exception themselves rather than pre-checking existence.
+ *
  * @api
  *
  * @spec FR-026 FR-027 FR-028 FR-029 — media copy primitive
@@ -116,6 +125,10 @@ final class MediaCopier
                 $operation = MediaCopyOperation::Fetched;
             } else {
                 if (!is_readable($source)) {
+                    $this->logger->warning('Media source not found or unreadable; copy skipped.', [
+                        'source' => $source,
+                        'target' => $target,
+                    ]);
                     throw WordPressMediaCopyException::sourceNotFound($source);
                 }
                 if (@copy($source, $tmp) === false) {

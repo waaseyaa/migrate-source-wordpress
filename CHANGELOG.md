@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`WordPressPostSource` status contract pinned (G-021)**: the `status` field was already emitted as the raw WordPress status string (`publish`, `draft`, `pending`, `private`, `future`, `trash`, ...) — this is now covered by a regression test and documented as a stable contract. Consumers that need a boolean "published" flag must add an explicit status→bool mapping step in their own process map; this source will never flatten status itself.
 - **`WordPressPostSource` post_type allowlist filter (G-027)**: constructor gains `?array $postTypes = null`. When provided (a non-empty list of non-empty `post_type` strings), only matching records are emitted — enabling a per-bundle migration split (e.g. separate `WordPressPostSource` instances for `page`, `post`, and a custom `event` type feeding three distinct migrations). `null` (default) preserves the existing behavior of emitting every post type.
 
+### Fixed
+
+- **BREAKING: `WordPressMediaSource::derivePath()` now emits uploads-relative `file_path` values** (G-017). Previously the method preferred the site-root-relative `<wp:attachment_url>` path (e.g. `/wp-content/uploads/2024/06/foo.pdf`) over the uploads-relative `_wp_attached_file` postmeta, so joining the emitted `file_path` to the operator guide's documented `storage/imports/uploads/` layout (`docs/migrating-from-wordpress.md` Option A) produced a path that never resolved — every attachment's local file copy silently no-op'd (381/381 in the originating field report). The connector now:
+  - Prefers postmeta `_wp_attached_file` (already uploads-relative per WordPress convention), returned verbatim minus any leading slash — e.g. `2024/06/foo.pdf`.
+  - Falls back to `<wp:attachment_url>` only when that postmeta is absent, stripping everything through the URL's `wp-content/uploads/` segment (case-insensitive, percent-decoded, and correct for both year/month and flat upload layouts) instead of returning the full site-root path.
+  - Returns `''` when neither source yields a resolvable uploads-relative path (e.g. an off-site/CDN-only `attachment_url` with no `wp-content/uploads/` segment) — consumers must treat `''` as "no file to copy."
+
+  **Migration for existing consumers:** any destination/process plugin that previously compensated for the old shape (e.g. stripping a `wp-content/uploads/` prefix itself before joining to a local uploads root) should remove that workaround — `file_path` now composes directly with `storage/imports/uploads/<file_path>` as documented.
+- `Media\MediaCopier` now logs a `warning` (with the resolved absolute `source` and `target` paths) immediately before throwing `WordPressMediaCopyException::sourceNotFound()`, so a missing/unreadable local media source is never silent even if a caller's logger is the only place the failure is observed before the exception is caught/discarded upstream.
+
 ## [0.1.0-alpha.1] - 2026-05-14
 
 First pre-release. Cut alongside the `waaseyaa/migration ^0.1.0-alpha.179` substrate so consumers can `composer require waaseyaa/migrate-source-wordpress:^0.1.0-alpha.1` instead of pinning `dev-main`.

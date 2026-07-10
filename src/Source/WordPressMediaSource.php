@@ -168,20 +168,47 @@ final class WordPressMediaSource implements SourcePluginInterface
     }
 
     /**
+     * Resolve the uploads-relative file path for an attachment — relative to
+     * the WordPress `wp-content/uploads/` directory, no leading slash.
+     *
+     * Contract (BREAKING as of G-017 — previously site-root-relative, e.g.
+     * `/wp-content/uploads/2025/05/logo.png`):
+     *
+     * 1. Prefers postmeta `_wp_attached_file`, which WordPress already
+     *    stores uploads-relative (e.g. `2025/05/logo.png`). Returned
+     *    verbatim, minus any leading slash.
+     * 2. Falls back to `<wp:attachment_url>` when postmeta is absent: the
+     *    URL path is percent-decoded, then stripped through its
+     *    `wp-content/uploads/` segment (case-insensitive). This covers both
+     *    year/month subfolder layouts and flat (non-year) layouts.
+     * 3. Returns `''` when neither source yields a resolvable
+     *    uploads-relative path (e.g. `attachment_url` present but has no
+     *    `wp-content/uploads/` segment — an off-site or CDN-only URL).
+     *    Callers must treat `''` as "no file to copy".
+     *
+     * The returned value composes directly with the layout documented in
+     * docs/migrating-from-wordpress.md ("Option A"): join it to the local
+     * `uploads/` root the operator rsynced media into
+     * (`storage/imports/uploads/<file_path>`).
+     *
      * @param array<string, mixed> $postmeta
      */
     private function derivePath(string $originalUrl, array $postmeta): string
     {
+        $attached = $postmeta['_wp_attached_file'] ?? null;
+        if (is_string($attached) && $attached !== '') {
+            return ltrim($attached, '/');
+        }
+
         if ($originalUrl !== '') {
             $path = parse_url($originalUrl, PHP_URL_PATH);
             if (is_string($path) && $path !== '') {
-                return $path;
+                $decoded = rawurldecode($path);
+                $relative = preg_replace('#^.*?/wp-content/uploads/#i', '', $decoded);
+                if (is_string($relative) && $relative !== $decoded) {
+                    return ltrim($relative, '/');
+                }
             }
-        }
-
-        $attached = $postmeta['_wp_attached_file'] ?? null;
-        if (is_string($attached) && $attached !== '') {
-            return '/' . ltrim($attached, '/');
         }
 
         return '';

@@ -42,6 +42,8 @@ rsync -avz user@wp-host:/var/www/wp-content/uploads/ /var/www/waaseyaa/storage/i
 
 Note the trailing slashes. After this finishes, you'll point the migration at the local `uploads/` directory.
 
+The connector's `file_path` for each attachment is **uploads-relative** (e.g. `2024/06/photo.jpg`, no `wp-content/uploads/` prefix) — join it directly to the `storage/imports/uploads/` root above (`storage/imports/uploads/<file_path>`). Do not prepend `wp-content/uploads/` yourself; the connector already strips it.
+
 ### Option B — Read media over HTTP (slower, no rsync needed)
 
 If `rsync` is impractical (managed WP host, firewall, etc.), the migration can fetch each attachment over HTTPS during the import. This is slower (one HTTP request per file) and requires your WP site to stay online during import — but it works.

@@ -34,12 +34,12 @@ it('yields one SourceRecord per WP attachment', function () {
     }
 });
 
-it('extracts file_path from attachment_url stripping host', function () {
+it('prefers _wp_attached_file (uploads-relative) over attachment_url for file_path', function () {
     $records = iterator_to_array(makeMediaSource()->records(), false);
     $logo = $records[0];
 
     expect($logo->field('id'))->toBe(200);
-    expect($logo->field('file_path'))->toBe('/wp-content/uploads/2025/05/logo.png');
+    expect($logo->field('file_path'))->toBe('2025/05/logo.png');
     expect($logo->field('original_url'))->toBe('https://example.test/wp-content/uploads/2025/05/logo.png');
 });
 
@@ -145,8 +145,83 @@ XML);
 
     try {
         $records = iterator_to_array((new WordPressMediaSource(new WxrReader($fixturePath)))->records(), false);
-        expect($records[0]->field('file_path'))->toBe('/2025/07/no-url.jpg');
+        expect($records[0]->field('file_path'))->toBe('2025/07/no-url.jpg');
         expect($records[0]->field('original_url'))->toBe('');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('derives file_path from attachment_url by stripping the wp-content/uploads/ prefix when postmeta is absent', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_media_url_only_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title>flat.png</title>
+<wp:post_id>502</wp:post_id>
+<wp:post_type>attachment</wp:post_type>
+<wp:attachment_url>https://example.test/wp-content/uploads/flat.png</wp:attachment_url>
+</item>
+</channel>
+</rss>
+XML);
+
+    try {
+        $records = iterator_to_array((new WordPressMediaSource(new WxrReader($fixturePath)))->records(), false);
+        expect($records[0]->field('file_path'))->toBe('flat.png');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('percent-decodes attachment_url paths when deriving file_path', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_media_encoded_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title>my file.png</title>
+<wp:post_id>503</wp:post_id>
+<wp:post_type>attachment</wp:post_type>
+<wp:attachment_url>https://example.test/wp-content/uploads/2025/05/my%20file.png</wp:attachment_url>
+</item>
+</channel>
+</rss>
+XML);
+
+    try {
+        $records = iterator_to_array((new WordPressMediaSource(new WxrReader($fixturePath)))->records(), false);
+        expect($records[0]->field('file_path'))->toBe('2025/05/my file.png');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
+it('returns an empty file_path when neither postmeta nor a wp-content/uploads/ URL segment is resolvable', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_media_unresolvable_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title>offsite.png</title>
+<wp:post_id>504</wp:post_id>
+<wp:post_type>attachment</wp:post_type>
+<wp:attachment_url>https://cdn.example.test/assets/offsite.png</wp:attachment_url>
+</item>
+</channel>
+</rss>
+XML);
+
+    try {
+        $records = iterator_to_array((new WordPressMediaSource(new WxrReader($fixturePath)))->records(), false);
+        expect($records[0]->field('file_path'))->toBe('');
     } finally {
         @unlink($fixturePath);
     }
