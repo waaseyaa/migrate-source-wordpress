@@ -99,6 +99,32 @@ return [
 
 The `WpPostsToArticles` name is an **example** — your destination might be called `BlogPost` or `Teaching` or `NewsItem`. Rename freely; see the [customization guide](customization.md).
 
+### Trash, status, and post-type filtering
+
+`WordPressPostSource` (the source `WpPostsToArticles` builds on) has three related behaviors worth knowing about:
+
+- **Trashed items are skipped by default.** Anything sitting in the WordPress trash (`wp:status` = `trash`) is *not* imported unless you explicitly opt in:
+
+  ```php
+  new WordPressPostSource($reader, includeTrashed: true);
+  ```
+
+- **`status` is always the raw WordPress string** — `publish`, `draft`, `pending`, `private`, `future`, etc. — never flattened to a boolean. If your destination wants a simple published/unpublished flag, add a small mapping step to the `status` entry in your process map (e.g. a process plugin that maps `'publish' => true`, everything else `false`) rather than relying on the source to decide that for you.
+
+- **`post_type` can be filtered at the source** via the `postTypes` constructor argument — a non-empty list of post-type strings. This is the recommended way to split one WXR export into several bundle-specific migrations.
+
+#### Recipe: splitting one WXR file into per-bundle migrations
+
+If your WP site mixes `page`, `post`, and a custom post type (say, `event`) but your Waaseyaa app models these as separate entity bundles, run three `WordPressPostSource` instances against the same reader, each filtered to one post type, feeding three separate `MigrationDefinition`s:
+
+```php
+$pagesSource = new WordPressPostSource($reader, migrationId: 'wp_pages', postTypes: ['page']);
+$postsSource = new WordPressPostSource($reader, migrationId: 'wp_posts', postTypes: ['post']);
+$eventsSource = new WordPressPostSource($reader, migrationId: 'wp_events', postTypes: ['event']);
+```
+
+Build a distinct `MigrationDefinition` per source (clone `WpPostsToArticles`'s `definition()` body per bundle, per the customization guide), each pointed at its own destination. Records whose `post_type` isn't in the list are skipped by that source entirely, so there is no overlap or double-import risk between the three migrations.
+
 ---
 
 ## Step 5 — Run the import (≈5–60 min)
