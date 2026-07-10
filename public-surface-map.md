@@ -41,6 +41,8 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPostmetaExtract` | Process plugin | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressBuilderContentDecode` | Process plugin | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\PageBuilder\ElementorTreeDecoder` | Concrete class (Elementor `_elementor_data` decoding strategy, consumed by `WordPressBuilderContentDecode`) | true | WP08 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPermalinkToAlias` | Process plugin | true | G-020 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\UuidToSystemPathProcessor` | Process plugin | true | G-020 |
 
 ### Media copy
 
@@ -50,6 +52,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Media\MediaCopyResult` | DTO | true | WP05 |
 | `Waaseyaa\Migrate\Source\WordPress\Media\MediaCopyOperation` | Enum | true | WP05 |
 | `Waaseyaa\Migrate\Source\WordPress\Media\MediaFetcherInterface` | Pluggable HTTP fetcher | true | WP05 |
+| `Waaseyaa\Migrate\Source\WordPress\Media\IdMapMediaUrlResolver` | Concrete class (resolver factory) | true | G-020 |
 
 ### Default migrations (factory classes)
 
@@ -64,6 +67,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpOrganizersToNodes` | MigrationDefinition factory | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpVenuesToNodes` | MigrationDefinition factory | true | G-016 |
 | `Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks` | MigrationDefinition factory (example) | true | G-022 |
+| `Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToPathAliases` | MigrationDefinition factory (example) | true | G-020 |
 
 ### Exceptions
 

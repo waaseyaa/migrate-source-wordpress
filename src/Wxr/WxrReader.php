@@ -463,6 +463,16 @@ final class WxrReader
         // Item extras include all wp:postmeta entries plus any plugin-namespaced elements.
         $extra = [];
 
+        // G-020: capture the bare (default-namespace) <link> permalink. It is
+        // not wp:-namespaced and has no typed slot on the post-like shape, so
+        // it rides in _extra alongside postmeta rather than as a top-level
+        // field — additive, does not change the existing typed shape.
+        $linkNodes = $node->xpath('link');
+        $link = trim((string) ($linkNodes[0] ?? ''));
+        if ($link !== '') {
+            $extra['link'] = $link;
+        }
+
         $wpNs = $this->resolveWpNamespace($node);
 
         $excludeWpFields = ['post_id', 'post_type', 'post_name', 'status', 'post_date_gmt', 'post_date', 'post_modified_gmt', 'post_modified', 'post_parent', 'comment_status', 'post_password', 'comment'];
