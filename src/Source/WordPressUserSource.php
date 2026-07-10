@@ -97,6 +97,43 @@ final class WordPressUserSource implements SourcePluginInterface
     }
 
     /**
+     * Build a `login → wp:author_id` index from every `<wp:author>` element
+     * in the WXR document.
+     *
+     * Posts carry authorship as `dc:creator` — a login string — but this
+     * source's `SourceId` is keyed by the numeric `wp:author_id`
+     * (data-model §1.1). This index is the bridge a
+     * `Process\WordPressAuthorIdResolve` chain step needs to convert a
+     * post's `author_login` into a value a standard `LookupProcessor` can
+     * key against (G-019).
+     *
+     * Reads the reader once, independent of and in addition to any other
+     * iteration over it — callers building both a users migration and an
+     * author index should construct a fresh `WxrReader` for each pass
+     * (streaming readers are not re-entrant / rewindable mid-stream).
+     *
+     * @return array<string, int|string> Keyed by login; duplicate logins keep the first `wp:author_id` seen.
+     *
+     * @throws \Waaseyaa\Migration\Exception\SourceReadException When the WXR file cannot be read or parsed.
+     */
+    public static function loginIndex(WxrReader $reader): array
+    {
+        $index = [];
+        foreach ((new self($reader))->records() as $record) {
+            $login = $record->field('login');
+            $id = $record->field('id');
+            if (!is_string($login) || $login === '' || isset($index[$login])) {
+                continue;
+            }
+            if (is_int($id) || is_string($id)) {
+                $index[$login] = $id;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
      * @param array<string, mixed> $data
      *
      * @return array<string, mixed>

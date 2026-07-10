@@ -232,6 +232,128 @@ See [`WpEventsToNodes`](../src/Migration/WpEventsToNodes.php) for a full worked 
 
 ---
 
+## Resolving references through the id-map
+
+By default the WordPress `terms`, `author_login`, and `parent_id` fields are
+emitted **verbatim** — raw WXR values, not destination references. G-019
+adds an *opt-in* wiring layer, `Migration\ReferenceResolutionOptions`, that
+resolves those references through the real migration id-map and turns them
+into destination entity references. Nothing about the default (unresolved)
+process maps changes when you don't pass it — `$references` is the last,
+optional constructor argument on `WpUsersToAccounts`'s siblings
+(`WpTermsToTaxonomy`, `WpMediaToEntities`, `WpPostsToArticles`).
+
+### The two problems this solves
+
+1. **UUID vs storage id.** `Plugin\Process\LookupProcessor` (M-002) resolves
+   a source key to a `WriteResult::$destinationUuid` — a string. Many
+   destination reference fields (`Node.uid`, `Term.parent_id`, ...) are
+   integer foreign keys. `Process\WordPressEntityRefResolve`, chained after
+   a `LookupProcessor`, converts the uuid to a storage id via an
+   application-supplied closure:
+
+   ```php
+   use Waaseyaa\EntityStorage\EntityRepository;
+
+   /** @var array<string, EntityRepository> $repositories keyed by destination entity type */
+   $entityRefResolve = function (string $entityType, string $uuid) use ($repositories): int|string|null {
+       $matches = $repositories[$entityType]->findBy(['uuid' => $uuid]);
+       return $matches[0]?->get('id');
+   };
+   ```
+
+   `EntityRepository::findBy(['uuid' => $uuid])` is the canonical lookup —
+   the same one `Waaseyaa\Migration\Tests\Integration\EndToEndCsvImportTest`
+   uses to resolve a migrated entity by its stable handle. Omit
+   `$entityRefResolve` and resolved reference fields stay destination UUID
+   strings instead — valid if your destination field is UUID-typed.
+
+2. **WordPress source data isn't id-map-shaped.** Posts carry authorship as
+   a login string (`dc:creator`) and term membership as `(taxonomy, slug)`
+   pairs, but the WordPress source plugins key their `SourceId`s by numeric
+   ids (`wp:author_id`, `wp:term_id`). Two small index builders bridge the
+   gap — build them once from a *fresh* `WxrReader` (streaming readers are
+   not rewindable mid-stream):
+
+   ```php
+   use Waaseyaa\Migrate\Source\WordPress\Source\WordPressUserSource;
+   use Waaseyaa\Migrate\Source\WordPress\Source\WordPressTaxonomySource;
+
+   $loginToId = WordPressUserSource::loginIndex(new WxrReader($wxrPath));       // login => wp:author_id
+   $slugToTermId = WordPressTaxonomySource::slugIndex(new WxrReader($wxrPath)); // "taxonomy:slug" => wp:term_id
+   ```
+
+### Wiring it up
+
+```php
+use Waaseyaa\Migrate\Source\WordPress\Migration\ReferenceResolutionOptions;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpTermsToTaxonomy;
+
+$references = new ReferenceResolutionOptions(
+    loginToId: $loginToId,
+    slugToTermId: $slugToTermId,
+    entityRefResolve: $entityRefResolve,
+    resolveParent: true,          // page hierarchy + media->post attachment
+    authorEntityType: 'account',  // entity type id passed to $entityRefResolve
+    termEntityType: 'taxonomy_term',
+    postEntityType: 'article',
+    onMiss: ReferenceResolutionOptions::ON_MISS_NULL, // or ::ON_MISS_FAIL
+);
+
+$termsDefinition = (new WpTermsToTaxonomy($reader, $taxonomyDest, references: $references))->definition();
+$postsDefinition = (new WpPostsToArticles($reader, $articleDest, references: $references))->definition();
+```
+
+Every resolved field is **additive** — it never replaces the raw field:
+
+| Migration | Raw field (unchanged) | New resolved field | Requires |
+|---|---|---|---|
+| `WpPostsToArticles` | `author_login` | `uid` | `$loginToId` |
+| `WpPostsToArticles` | `parent_id` | `parent_ref` | `$resolveParent` |
+| `WpPostsToArticles` | `terms` | `term_refs` (`list<int\|string>`) | `$slugToTermId` |
+| `WpTermsToTaxonomy` | `parent_slug` | `parent_ref` | `$slugToTermId` |
+| `WpMediaToEntities` | `parent_post_id` | `parent_ref` | `$resolveParent` |
+
+`onMiss` (default `'null'`) governs every resolver in the bundle: an
+unresolvable reference leaves the new field `null` (or, for `term_refs`,
+skips that one entry) rather than failing the whole record.
+`ReferenceResolutionOptions::ON_MISS_FAIL` raises `ProcessException` instead
+— useful once you trust your indexes are complete and want a hard failure
+on drift.
+
+### Ordering caveats worth knowing
+
+- **Page hierarchy (`WpPostsToArticles`'s `parent_ref`) is a same-migration
+  self-lookup.** It only resolves correctly if a page's parent appears
+  *earlier* in WXR document order than the page itself — the runner does not
+  topologically sort records within one migration. This mirrors the existing
+  `WpCommentsToEngagement`'s `parent_id` self-lookup and is a WordPress
+  export convention in practice (parents are typically created, and thus
+  exported, before their children), not a guarantee the connector enforces.
+- **`WpMediaToEntities`'s `parent_ref` (media → attached post) resolves on a
+  SECOND run.** The shipped dependency order runs media *before* posts
+  (posts reference media, not the other way around), so on the first run the
+  referenced post does not exist in the id-map yet and `parent_ref` stays
+  `null`. Re-running the media migration after posts have imported succeeds
+  — the resolved value now differs from the stored `null`, so
+  `EntityDestination`'s change-detection (FR-031) updates the row instead of
+  skipping it. Operators who need first-run resolution must run posts before
+  media in a custom pipeline that also reorders `WpPostsToArticles`'s
+  dependency on `WpMediaToEntities`.
+
+### `Term.slug`
+
+`WpTermsToTaxonomy` has always emitted `slug => slug` unconditionally — no
+`$references` needed. On framework versions carrying a first-class
+`Term.slug` field (`waaseyaa/field` post-alpha.258) it lands there directly;
+on older versions the value rides the entity's `_data` blob like any other
+unmapped field, because `EntityDestination` applies every process-map value
+via `$entity->set()` regardless of whether the destination schema has a real
+column for it.
+
+---
+
 ## Multisite (WordPress Multisite)
 
 WordPress Multisite exports one WXR per site (research §1.5). The package handles one WXR file per `WxrReader` instance. To migrate a multisite network:

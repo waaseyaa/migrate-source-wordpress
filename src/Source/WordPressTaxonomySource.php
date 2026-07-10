@@ -99,6 +99,50 @@ final class WordPressTaxonomySource implements SourcePluginInterface
     }
 
     /**
+     * Build a `"{taxonomy}:{slug}" → wp:term_id` index from every term
+     * element in the WXR document.
+     *
+     * Posts (`terms`) and terms (`parent_slug`) reference other terms by
+     * slug within a taxonomy, but this source's `SourceId` is keyed by the
+     * numeric `wp:term_id` (or the legacy `crc32()`-derived id the reader
+     * synthesises for `<wp:category>` elements without one). The taxonomy is
+     * part of the key because slugs are only unique within a taxonomy — a
+     * category and a tag may legitimately share a slug. This index is the
+     * bridge `Process\WordPressTermsResolve` and
+     * `Process\WordPressTermParentResolve` need to convert a slug reference
+     * into a value a standard id-map lookup can key against (G-019).
+     *
+     * Reads the reader once; callers building both a terms migration and a
+     * slug index should construct a fresh `WxrReader` for each pass
+     * (streaming readers are not re-entrant / rewindable mid-stream).
+     *
+     * @return array<string, int|string> Keyed by `"{taxonomy}:{slug}"`; duplicate keys keep the first `wp:term_id` seen.
+     *
+     * @throws \Waaseyaa\Migration\Exception\SourceReadException When the WXR file cannot be read or parsed.
+     */
+    public static function slugIndex(WxrReader $reader): array
+    {
+        $index = [];
+        foreach ((new self($reader))->records() as $record) {
+            $taxonomy = $record->field('taxonomy_name');
+            $slug = $record->field('slug');
+            $id = $record->field('id');
+            if (!is_string($taxonomy) || !is_string($slug) || $taxonomy === '' || $slug === '') {
+                continue;
+            }
+            $key = $taxonomy . ':' . $slug;
+            if (isset($index[$key])) {
+                continue;
+            }
+            if (is_int($id) || is_string($id)) {
+                $index[$key] = $id;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
      * @param array<string, mixed> $data
      *
      * @return array<string, mixed>
