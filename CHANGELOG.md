@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-07-13
+
 ### Changed
 
 - **`waaseyaa/*` dependency floors raised to `^0.1.0-alpha.259`** (were `^0.1.0-alpha.179`). The G-018 integration surface exercises alpha.259 behavior (G-024 lazy `MigrationRegistry` boot), and alpha.259 is what the connector is developed and verified against; older substrates are no longer claimed supported. Flagged by adversarial verification: a test helper silently depended on the newer substrate while the manifest floor still admitted alpha.179–258 resolutions. The helper also gained an explicit `$registry->boot()` so it is version-agnostic regardless.
@@ -14,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`WpCommentsToEngagement` id-map lookup type mismatch**: `WordPressCommentSource::normalize()` emits `post_id` as `int` and `parent_id` as `int|null`, but every `SourceId` in this package (including `WordPressPostSource::sourceIdFor()` and `WordPressCommentSource::sourceIdFor()` itself) keys its id-map row with a string id. `SourceId` hashing is type-sensitive, so feeding the raw int straight into `LookupProcessor` hash-missed on every single comment record — `post_id` and `parent_id` silently resolved to `null` on every migrated comment, with no error surfaced. Flagged by an adversarial verifier reviewing the comments migration (which has never yet been run against a production destination — this closes the gap before it is). Fixed by chaining a `TypeCoerceProcessor('string')` ahead of both `LookupProcessor` calls, matching the established pattern already used by `WpPostsToArticles`'s `parent_ref` and `WpPostsToPathAliases`'s post lookup; `null` parent ids continue to pass through unchanged (top-level comments correctly resolve to `null`, not a miss).
+
 ### Added
 
 - **Database-backed user source for full member migration (G-018)**: WXR export only serializes `<wp:author>` elements — one per *post author* — so a WXR-only `wp_users_to_accounts` run silently drops every account that never authored a post (member/subscriber accounts that only ever logged in), along with any state that lives solely on the account row or usermeta (consent flags, disabled/frozen status). New `Source\WordPressDbUserSource` (`PLUGIN_ID = 'wordpress_db_user'`) reads `{prefix}users`/`{prefix}usermeta` directly from the WordPress database instead, via `Waaseyaa\Database\DatabaseInterface` (query-builder, not raw PDO). It emits the same base field shape as `WordPressUserSource` (`id`, `login`, `email`, `display_name`, `first_name`, `last_name`, `registered`, `role`) plus `status` (`user_status`) and one passthrough field per constructor-supplied `metaFields` entry (`record field name => usermeta meta_key`, raw values — the caller's own process chain decides how to interpret them). `role` is always source-derived by unserializing `{prefix}capabilities` and taking the first truthy role key (mirroring WXR's `role` contract); a missing or malformed capabilities row yields `null` rather than crashing the whole source read.
