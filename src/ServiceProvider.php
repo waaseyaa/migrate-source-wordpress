@@ -5,21 +5,18 @@ declare(strict_types=1);
 namespace Waaseyaa\Migrate\Source\WordPress;
 
 use Waaseyaa\Foundation\ServiceProvider\ServiceProvider as BaseServiceProvider;
-use Waaseyaa\Migration\Discovery\HasMigrationPluginsInterface;
 use Waaseyaa\Migration\Discovery\HasMigrationsInterface;
 
 /**
- * @api Service provider that registers the WordPress source-reader plugins
- *      and default migrations with the Waaseyaa migration substrate.
+ * @api Service provider that exposes consumer-composed default migrations to
+ *      the Waaseyaa migration substrate.
  */
-final class ServiceProvider extends BaseServiceProvider implements
-    HasMigrationsInterface,
-    HasMigrationPluginsInterface
+final class ServiceProvider extends BaseServiceProvider implements HasMigrationsInterface
 {
     public function register(): void
     {
-        // Service-container bindings (none yet — source/process plugins are
-        // discovered via migrationPlugins(); migrations via migrations()).
+        // Service-container bindings (none yet). Source/process plugins are
+        // consumer-composed factory classes; migrations use migrations().
     }
 
     /**
@@ -39,14 +36,4 @@ final class ServiceProvider extends BaseServiceProvider implements
         return [];
     }
 
-    /**
-     * Source + process plugins ship as factory classes too: source plugins
-     * need a configured {@see Wxr\WxrReader} and {@see Process\WordPressMediaRewriteUrl}
-     * needs an operator-supplied url resolver closure. Consumers instantiate
-     * them at composition time.
-     */
-    public function migrationPlugins(): iterable
-    {
-        return [];
-    }
 }

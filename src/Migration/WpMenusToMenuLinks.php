@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Waaseyaa\Migrate\Source\WordPress\Migration;
 
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressMenuUrlResolve;
 use Waaseyaa\Migrate\Source\WordPress\Source\WordPressMenuSource;
 use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\MigrationDefinition;
@@ -38,10 +39,10 @@ use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
  * ordering — makes that safe; see `docs/migrating-from-wordpress.md`
  * "Menus" for the recipe and its caveats.
  *
- * `url` passes through from {@see WordPressMenuSource} as-is: populated for
- * `custom` link items, `null` for `post_type` / `taxonomy` items (those
- * carry `object_type` + `object_id` instead, for id-map / path-alias
- * resolution the app wires separately).
+ * `url` preserves `custom` links and resolves every `post_type` object through
+ * the posts migration's id-map, then through the operator-supplied uuid-to-id
+ * bridge. The posts migration must therefore run first. Taxonomy objects remain
+ * app-wired because term public routes have a separate destination contract.
  *
  * @api
  *
@@ -54,6 +55,10 @@ final class WpMenusToMenuLinks
     public function __construct(
         private readonly WxrReader $reader,
         private readonly DestinationPluginInterface $destination,
+        private readonly \Closure $uuidToId,
+        private readonly string $postsMigrationId = WpPostsToArticles::MIGRATION_ID,
+        private readonly string $destinationEntityType = 'node',
+        private readonly string $systemPathPrefix = '/node/',
     ) {
     }
 
@@ -64,14 +69,20 @@ final class WpMenusToMenuLinks
             source: new WordPressMenuSource($this->reader, self::MIGRATION_ID),
             process: [
                 'title' => 'title',
-                'url' => 'url',
+                'url' => new WordPressMenuUrlResolve(
+                    uuidToId: $this->uuidToId,
+                    postsMigrationId: $this->postsMigrationId,
+                    destinationEntityType: $this->destinationEntityType,
+                    systemPathPrefix: $this->systemPathPrefix,
+                ),
                 'menu_name' => 'menu_name',
                 'weight' => 'weight',
                 'enabled' => 'enabled',
             ],
             destination: $this->destination,
+            dependencies: [$this->postsMigrationId],
             description: 'Example WordPress nav menu items → menu_link migration (G-022). '
-                . 'Parent-link and object-id (post/term) URL resolution are app-side wiring — see docs/migrating-from-wordpress.md.',
+                . 'Run after posts; post object URLs resolve through its id-map. Parent links and taxonomy object URLs remain app-side wiring — see docs/migrating-from-wordpress.md.',
         );
     }
 }

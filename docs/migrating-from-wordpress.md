@@ -294,17 +294,20 @@ Add `WpMenusToMenuLinks` to your bootstrap file, targeting `waaseyaa/menu`'s `me
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks;
 
 $menuLinkDest = /* your EntityDestination for the "menu_link" entity */;
+$uuidToId = static function (string $entityType, string $uuid): int|string|null {
+    // Resolve the posts id-map UUID to the destination entity's system id.
+};
 
 return [
     // ...the five default migrations from Step 4...
-    (new WpMenusToMenuLinks($reader, $menuLinkDest))->definition(),
+    (new WpMenusToMenuLinks($reader, $menuLinkDest, $uuidToId))->definition(),
 ];
 ```
 
 ### What comes across automatically
 
 - `weight` (from WordPress's menu-order), and `enabled` (always `true` — WordPress doesn't export a disabled state for nav items).
-- `url` — populated only for **custom link** items (`_menu_item_type = custom`); this is the operator-typed URL, copied verbatim.
+- `url` — **custom links** are copied verbatim. **Post objects** (`post_type`: pages, posts, and imported custom post types) resolve `object_id` through `WpPostsToArticles`'s id-map and become `/node/{id}` by default. Run posts before menus. A missing id-map row or UUID-to-id result fails that menu record instead of writing an empty URL. Override `postsMigrationId`, `destinationEntityType`, or `systemPathPrefix` when your posts migration or route differs.
 - `menu_name` — the menu this item belongs to, taken from the item's `nav_menu` term slug (e.g. `menu`, `portal-menu` — a WXR export commonly contains more than one menu). `menu_name` is also `menu_link`'s bundle, so this one field both classifies and buckets each link into its menu.
 
 **`title` is NOT reliably automatic.** WordPress only writes a real `<title>` for **custom link** items — for `post_type`/`taxonomy`-flavour items (a link to a page, post, or term) WordPress leaves `<title>` empty, because the "real" title lives on the referenced object, not the nav item. This is not an edge case: on the real Sheguiandah First Nation export, 15 of its 17 `nav_menu_item` records ship with an empty `<title>`. Left unaddressed, your imported nav renders with blank labels for almost every link.
@@ -314,6 +317,8 @@ To fix this, build a `WP object id → title` index once from the WXR document a
 ```php
 use Waaseyaa\Migrate\Source\WordPress\Source\WordPressMenuSource;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpMenusToMenuLinks;
+use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
+use Waaseyaa\Migrate\Source\WordPress\Process\WordPressMenuUrlResolve;
 use Waaseyaa\Migration\MigrationDefinition;
 
 // Reads posts/pages and terms once and builds a WP object id -> title map
@@ -328,12 +333,13 @@ $menuDefinition = new MigrationDefinition(
     source: $menuSource,
     process: [
         'title' => 'title',
-        'url' => 'url',
+        'url' => new WordPressMenuUrlResolve($uuidToId, WpPostsToArticles::MIGRATION_ID),
         'menu_name' => 'menu_name',
         'weight' => 'weight',
         'enabled' => 'enabled',
     ],
     destination: $menuLinkDest,
+    dependencies: [WpPostsToArticles::MIGRATION_ID],
 );
 
 return [
@@ -346,9 +352,9 @@ return [
 
 ### What needs app-side wiring
 
-**Page/post/category links (`object_type` + `object_id`).** WordPress nav items that point at a page, post, or term (`_menu_item_type` of `post_type` or `taxonomy`) carry `null` for `url` and instead expose `object_type` (`page`, `post`, a custom post type, `category`, `post_tag`, …) and `object_id` (the WordPress post/term id). `WordPressMenuSource` cannot resolve these to a destination URL by itself — that needs either:
+**Taxonomy links (`object_type` + `object_id`).** The stock factory resolves every `post_type` item through the posts id-map in dependency order. `taxonomy` items (`category`, `post_tag`, custom taxonomies) remain app-side because their public route is a separate destination contract. Resolve them with:
 
-- A `Waaseyaa\Migration\Plugin\Process\LookupProcessor` against the sibling posts/terms migration's id-map (`migration: WpPostsToArticles::MIGRATION_ID` or `WpTermsToTaxonomy::MIGRATION_ID`, `sourceType: WordPressPostSource::SOURCE_TYPE` / `WordPressTaxonomySource::SOURCE_TYPE`, `keyField: 'object_id'` via a small wrapper that reads `object_id` as the lookup key) to get the destination uuid, followed by
+- A `Waaseyaa\Migration\Plugin\Process\LookupProcessor` against the sibling terms migration's id-map (`migration: WpTermsToTaxonomy::MIGRATION_ID`, `sourceType: WordPressTaxonomySource::SOURCE_TYPE`, `keyField: 'object_id'` via a small wrapper that reads `object_id` as the lookup key) to get the destination uuid, followed by
 - Your own path-alias resolution to turn that uuid into a URL — see "URL preservation" below for the package's stock `WpPostsToPathAliases` / `IdMapMediaUrlResolver` pieces (G-020); menu items pointing at posts/terms can reuse the same `path_alias` rows those produce.
 
 **Parent links (`parent_wp_id`).** `WpMenusToMenuLinks` deliberately leaves `parent_id` out of its process map. WXR does not guarantee nav items appear parent-before-child in document order, so a single streaming pass through `WpMenusToMenuLinks` cannot promise a parent's id-map row exists yet when its child is processed — a naive `LookupProcessor` on `parent_wp_id` would intermittently miss. Two supported approaches:
