@@ -171,6 +171,7 @@ final class WordPressMenuSource implements SourcePluginInterface
             'id' => $data['id'] ?? 0,
             'title' => $this->resolveTitle($data['title'] ?? '', $resolvedObjectId),
             'url' => $isCustom ? ($postMeta['_menu_item_url'] ?? null) : null,
+            'item_type' => $menuItemType,
             'object_type' => $isCustom ? null : ($postMeta['_menu_item_object'] ?? null),
             'object_id' => $resolvedObjectId,
             'menu_name' => $this->resolveMenuName(is_array($data['terms'] ?? null) ? $data['terms'] : []),

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Post-object menu URLs no longer import empty.** `WpMenusToMenuLinks` now runs after the posts migration and resolves `post_type` menu items through its real migration id-map, then through a required operator-supplied UUID-to-system-id closure (default route `/node/{id}`). Custom URLs remain verbatim. Missing mappings fail the record rather than silently persisting `url = null`; taxonomy-object URLs remain explicitly application-wired because term routes have a distinct destination contract. (`waaseyaa/framework#2010`)
+
 ## [0.1.0-alpha.3] - 2026-07-13
 
 ### Changed

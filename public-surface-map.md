@@ -44,6 +44,7 @@ This document enumerates the package's stable public surface per the Waaseyaa st
 | `Waaseyaa\Migrate\Source\WordPress\PageBuilder\ElementorTreeDecoder` | Concrete class (Elementor `_elementor_data` decoding strategy, consumed by `WordPressBuilderContentDecode`) | true | WP08 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressPermalinkToAlias` | Process plugin | true | G-020 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\UuidToSystemPathProcessor` | Process plugin | true | G-020 |
+| `Waaseyaa\Migrate\Source\WordPress\Process\WordPressMenuUrlResolve` | Process plugin | true | G-022 / R21 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressEntityRefResolve` | Process plugin | true | G-019 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressAuthorIdResolve` | Process plugin | true | G-019 |
 | `Waaseyaa\Migrate\Source\WordPress\Process\WordPressTermsResolve` | Process plugin | true | G-019 |

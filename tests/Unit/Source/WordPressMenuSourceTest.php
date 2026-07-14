@@ -86,6 +86,7 @@ it('extracts a post_type (page) item with object_type/object_id instead of a URL
     $record = menuRecordById('169');
 
     expect($record->field('url'))->toBeNull();
+    expect($record->field('item_type'))->toBe('post_type');
     expect($record->field('object_type'))->toBe('page');
     expect($record->field('object_id'))->toBe(76);
     expect($record->field('menu_name'))->toBe('menu');
