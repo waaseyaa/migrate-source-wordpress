@@ -14,7 +14,6 @@ use Waaseyaa\Access\Gate\EntityAccessGate;
 use Waaseyaa\Database\DBALDatabase;
 use Waaseyaa\Entity\EntityTypeManager;
 use Waaseyaa\EntityStorage\Connection\SingleConnectionResolver;
-use Waaseyaa\EntityStorage\Driver\SqlStorageDriver;
 use Waaseyaa\EntityStorage\EntityRepository;
 use Waaseyaa\Migrate\Source\WordPress\Migration\ReferenceResolutionOptions;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpMediaToEntities;
@@ -24,9 +23,9 @@ use Waaseyaa\Migrate\Source\WordPress\Migration\WpUsersToAccounts;
 use Waaseyaa\Migrate\Source\WordPress\Source\WordPressTaxonomySource;
 use Waaseyaa\Migrate\Source\WordPress\Source\WordPressUserSource;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\AllowAllPolicy;
-use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\RefTestSystemAccount;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefTestEntity;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefTestEntityType;
+use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefRepositoryFactory;
 use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\Discovery\HasMigrationsInterface;
 use Waaseyaa\Migration\Discovery\MigrationRegistry;
@@ -103,16 +102,15 @@ final class ReferenceResolutionEndToEndTest extends TestCase
         foreach (['account', 'taxonomy_term', 'article'] as $entityTypeId) {
             $entityType = WpRefTestEntityType::make($entityTypeId);
             $this->typeManager->registerEntityType($entityType);
-            $driver = new SqlStorageDriver($resolver, 'id');
-            $this->repositories[$entityTypeId] = new EntityRepository(
-                entityType: $entityType,
-                driver: $driver,
-                eventDispatcher: $this->dispatcher,
+            $this->repositories[$entityTypeId] = WpRefRepositoryFactory::create(
+                $entityType,
+                $resolver,
+                $this->dispatcher,
             );
         }
 
         $this->idMap = new MigrationIdMap($this->db);
-        $this->systemAccount = new RefTestSystemAccount();
+        $this->systemAccount = WpRefRepositoryFactory::systemAccount();
         $this->gate = new EntityAccessGate(new EntityAccessHandler([
             new AllowAllPolicy('account'),
             new AllowAllPolicy('taxonomy_term'),
@@ -185,10 +183,11 @@ final class ReferenceResolutionEndToEndTest extends TestCase
         self::assertInstanceOf(WpRefTestEntity::class, $announcementsTerm);
 
         // Top-level term: parent_ref stays null (not a miss).
-        self::assertNull($newsTerm->get('parent_ref'));
+        self::assertNull(WpRefRepositoryFactory::storedValue($this->db, $newsTerm, 'parent_ref'));
         // Child term: parent_ref resolves to news's own storage id (an int).
-        self::assertSame($newsTerm->get('id'), $announcementsTerm->get('parent_ref'));
-        self::assertIsInt($announcementsTerm->get('parent_ref'));
+        $announcementsParent = WpRefRepositoryFactory::storedValue($this->db, $announcementsTerm, 'parent_ref');
+        self::assertSame($newsTerm->id(), $announcementsParent);
+        self::assertIsInt($announcementsParent);
 
         // --- Leg 3: media (no reference resolution needed for this test) --
         $runner->run(WpMediaToEntities::MIGRATION_ID, new RunOptions());
@@ -209,18 +208,20 @@ final class ReferenceResolutionEndToEndTest extends TestCase
         self::assertInstanceOf(WpRefTestEntity::class, $childPage102);
 
         // G-019: authorship resolved to the admin account's real storage id.
-        self::assertSame($adminAccount->get('id'), $post100->get('uid'));
-        self::assertIsInt($post100->get('uid'));
+        $postUid = WpRefRepositoryFactory::storedValue($this->db, $post100, 'uid');
+        self::assertSame($adminAccount->id(), $postUid);
+        self::assertIsInt($postUid);
 
         // G-019: page hierarchy resolved to the parent page's real storage id.
-        self::assertNull($post100->get('parent_ref'), 'top-level post has no parent');
-        self::assertNull($parentPage101->get('parent_ref'), 'top-level page has no parent');
-        self::assertSame($parentPage101->get('id'), $childPage102->get('parent_ref'));
-        self::assertIsInt($childPage102->get('parent_ref'));
+        self::assertNull(WpRefRepositoryFactory::storedValue($this->db, $post100, 'parent_ref'), 'top-level post has no parent');
+        self::assertNull(WpRefRepositoryFactory::storedValue($this->db, $parentPage101, 'parent_ref'), 'top-level page has no parent');
+        $childParent = WpRefRepositoryFactory::storedValue($this->db, $childPage102, 'parent_ref');
+        self::assertSame($parentPage101->id(), $childParent);
+        self::assertIsInt($childParent);
 
         // G-019: term membership resolved to the news term's real storage id.
-        self::assertSame([$newsTerm->get('id')], $post100->get('term_refs'));
-        self::assertSame([$announcementsTerm->get('id')], $childPage102->get('term_refs'));
+        self::assertSame([$newsTerm->id()], WpRefRepositoryFactory::storedValue($this->db, $post100, 'term_refs'));
+        self::assertSame([$announcementsTerm->id()], WpRefRepositoryFactory::storedValue($this->db, $childPage102, 'term_refs'));
     }
 
     // =========================================================================
@@ -284,7 +285,7 @@ final class ReferenceResolutionEndToEndTest extends TestCase
             $matches = $repository->findBy(['uuid' => $uuid]);
             $entity = $matches[0] ?? null;
 
-            return $entity?->get('id');
+            return $entity?->id();
         };
     }
 
