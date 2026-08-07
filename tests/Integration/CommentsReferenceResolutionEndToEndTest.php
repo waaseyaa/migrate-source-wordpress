@@ -14,7 +14,6 @@ use Waaseyaa\Access\Gate\EntityAccessGate;
 use Waaseyaa\Database\DBALDatabase;
 use Waaseyaa\Entity\EntityTypeManager;
 use Waaseyaa\EntityStorage\Connection\SingleConnectionResolver;
-use Waaseyaa\EntityStorage\Driver\SqlStorageDriver;
 use Waaseyaa\EntityStorage\EntityRepository;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpCommentsToEngagement;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpMediaToEntities;
@@ -22,9 +21,9 @@ use Waaseyaa\Migrate\Source\WordPress\Migration\WpPostsToArticles;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpTermsToTaxonomy;
 use Waaseyaa\Migrate\Source\WordPress\Migration\WpUsersToAccounts;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\AllowAllPolicy;
-use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\RefTestSystemAccount;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefTestEntity;
 use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefTestEntityType;
+use Waaseyaa\Migrate\Source\WordPress\Tests\Integration\Fixtures\WpRefRepositoryFactory;
 use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\Discovery\HasMigrationsInterface;
 use Waaseyaa\Migration\Discovery\MigrationRegistry;
@@ -113,16 +112,15 @@ final class CommentsReferenceResolutionEndToEndTest extends TestCase
         foreach (['account', 'article', 'engagement'] as $entityTypeId) {
             $entityType = WpRefTestEntityType::make($entityTypeId);
             $this->typeManager->registerEntityType($entityType);
-            $driver = new SqlStorageDriver($resolver, 'id');
-            $this->repositories[$entityTypeId] = new EntityRepository(
-                entityType: $entityType,
-                driver: $driver,
-                eventDispatcher: $this->dispatcher,
+            $this->repositories[$entityTypeId] = WpRefRepositoryFactory::create(
+                $entityType,
+                $resolver,
+                $this->dispatcher,
             );
         }
 
         $this->idMap = new MigrationIdMap($this->db);
-        $this->systemAccount = new RefTestSystemAccount();
+        $this->systemAccount = WpRefRepositoryFactory::systemAccount();
         $this->gate = new EntityAccessGate(new EntityAccessHandler([
             new AllowAllPolicy('account'),
             new AllowAllPolicy('article'),
@@ -183,18 +181,21 @@ final class CommentsReferenceResolutionEndToEndTest extends TestCase
         // string id, so the lookup always hash-missed and post_id stayed
         // null. Fixed: both comments resolve to the post's real
         // destination uuid.
-        self::assertNotNull($topLevelComment->get('post_id'), 'top-level comment post_id must resolve, not hash-miss');
-        self::assertSame($post->get('uuid'), $topLevelComment->get('post_id'));
-        self::assertNotNull($replyComment->get('post_id'), 'reply comment post_id must resolve, not hash-miss');
-        self::assertSame($post->get('uuid'), $replyComment->get('post_id'));
+        $topLevelPostId = WpRefRepositoryFactory::storedValue($this->db, $topLevelComment, 'post_id');
+        $replyPostId = WpRefRepositoryFactory::storedValue($this->db, $replyComment, 'post_id');
+        self::assertNotNull($topLevelPostId, 'top-level comment post_id must resolve, not hash-miss');
+        self::assertSame($post->uuid(), $topLevelPostId);
+        self::assertNotNull($replyPostId, 'reply comment post_id must resolve, not hash-miss');
+        self::assertSame($post->uuid(), $replyPostId);
 
         // Top-level comment has no parent: null passes through TypeCoerceProcessor unchanged.
-        self::assertNull($topLevelComment->get('parent_id'));
+        self::assertNull(WpRefRepositoryFactory::storedValue($this->db, $topLevelComment, 'parent_id'));
 
         // Reply resolves against this migration's own (in-progress) id-map —
         // the same type mismatch made this hash-miss too.
-        self::assertNotNull($replyComment->get('parent_id'), 'reply comment parent_id must resolve, not hash-miss');
-        self::assertSame($topLevelComment->get('uuid'), $replyComment->get('parent_id'));
+        $replyParentId = WpRefRepositoryFactory::storedValue($this->db, $replyComment, 'parent_id');
+        self::assertNotNull($replyParentId, 'reply comment parent_id must resolve, not hash-miss');
+        self::assertSame($topLevelComment->uuid(), $replyParentId);
     }
 
     // =========================================================================
