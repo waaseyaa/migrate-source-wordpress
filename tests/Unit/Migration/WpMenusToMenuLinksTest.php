@@ -22,7 +22,7 @@ function makeMenusToMenuLinksFactory(): WpMenusToMenuLinks
 {
     $reader = new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml');
 
-    return new WpMenusToMenuLinks($reader, new InMemoryDestination(), static fn (): null => null);
+    return new WpMenusToMenuLinks($reader, new InMemoryDestination(), static fn(): null => null);
 }
 
 it('declares a migration definition with the expected id and source', function () {
@@ -47,7 +47,7 @@ it('maps title, resolved url, menu_name, weight, and enabled through the process
 it('does not map parent_id — parent resolution is app-side wiring', function () {
     $definition = makeMenusToMenuLinksFactory()->definition();
 
-    expect(fn () => $definition->processForField('parent_id'))
+    expect(fn() => $definition->processForField('parent_id'))
         ->toThrow(\OutOfBoundsException::class);
 });
 
@@ -71,7 +71,7 @@ it('preserves custom menu URLs without consulting the id-map', function () {
         $definition,
         'url',
         $customRecord,
-        static fn (): never => throw new \LogicException('Custom URLs must not use the id-map.'),
+        static fn(): never => throw new \LogicException('Custom URLs must not use the id-map.'),
     );
 
     expect($url)->toBe($customRecord->field('url'));
@@ -100,8 +100,8 @@ it('resolves post object menu items through the real migration id-map without an
     $factory = new WpMenusToMenuLinks(
         reader: new WxrReader(__DIR__ . '/../../../testing/Fixtures/menus.xml'),
         destination: new InMemoryDestination(),
-        uuidToId: static fn (string $entityType, string $uuid): ?int =>
-            $entityType === 'node' && $uuid === '019b0000-0000-7000-8000-000000000076' ? 42 : null,
+        uuidToId: static fn(string $entityType, string $uuid): ?int
+            => $entityType === 'node' && $uuid === '019b0000-0000-7000-8000-000000000076' ? 42 : null,
     );
     $definition = $factory->definition();
 
@@ -136,10 +136,10 @@ it('fails a post object record instead of persisting an empty URL when its id-ma
     }
     expect($postObjectRecord)->not->toBeNull();
 
-    expect(fn () => (new ProcessChainExecutor())->executeField(
+    expect(fn() => (new ProcessChainExecutor())->executeField(
         $definition,
         'url',
         $postObjectRecord,
-        static fn (): null => null,
+        static fn(): null => null,
     ))->toThrow(ProcessException::class, 'No posts id-map row');
 });

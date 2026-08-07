@@ -32,8 +32,7 @@ final readonly class WordPressMenuUrlResolve implements ProcessPluginInterface
         private string $postsMigrationId,
         private string $destinationEntityType = 'node',
         private string $systemPathPrefix = '/node/',
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

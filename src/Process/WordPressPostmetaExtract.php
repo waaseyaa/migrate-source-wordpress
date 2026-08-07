@@ -43,8 +43,7 @@ final class WordPressPostmetaExtract implements ProcessPluginInterface
     public function __construct(
         private readonly string $metaKey,
         private readonly mixed $default = null,
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

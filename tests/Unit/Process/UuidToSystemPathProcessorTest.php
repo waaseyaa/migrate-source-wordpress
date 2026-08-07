@@ -33,19 +33,19 @@ function systemPathContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts_to_path_aliases',
         destinationField: 'path',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
 it('declares plugin metadata', function () {
-    $plugin = new UuidToSystemPathProcessor(static fn () => null, 'node');
+    $plugin = new UuidToSystemPathProcessor(static fn() => null, 'node');
     expect($plugin->id())->toBe('wordpress_uuid_to_system_path');
     expect($plugin->stability())->toBe('stable');
 });
 
 it('resolves a uuid to a prefixed system path', function () {
     $plugin = new UuidToSystemPathProcessor(
-        static fn (string $entityType, string $uuid): ?int => $entityType === 'node' && $uuid === 'uuid-abc' ? 42 : null,
+        static fn(string $entityType, string $uuid): ?int => $entityType === 'node' && $uuid === 'uuid-abc' ? 42 : null,
         'node',
     );
 
@@ -55,7 +55,7 @@ it('resolves a uuid to a prefixed system path', function () {
 
 it('honors a custom prefix', function () {
     $plugin = new UuidToSystemPathProcessor(
-        static fn (string $entityType, string $uuid): int => 7,
+        static fn(string $entityType, string $uuid): int => 7,
         'article',
         prefix: '/article/',
     );
@@ -82,7 +82,7 @@ it('returns null and does not call the resolver when the chained uuid is null', 
 it('returns null and logs a warning when the uuid-to-id closure misses', function () {
     $logger = new SystemPathCapturingLogger();
     $plugin = new UuidToSystemPathProcessor(
-        static fn (): int|string|null => null,
+        static fn(): int|string|null => null,
         'node',
         logger: $logger,
     );
@@ -95,6 +95,6 @@ it('returns null and logs a warning when the uuid-to-id closure misses', functio
 });
 
 it('returns null for a non-string value', function () {
-    $plugin = new UuidToSystemPathProcessor(static fn () => 1, 'node');
+    $plugin = new UuidToSystemPathProcessor(static fn() => 1, 'node');
     expect($plugin->transform(42, systemPathContext()))->toBeNull();
 });

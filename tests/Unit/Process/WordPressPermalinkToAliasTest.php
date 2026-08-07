@@ -17,7 +17,7 @@ function permalinkContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts_to_path_aliases',
         destinationField: 'alias',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 

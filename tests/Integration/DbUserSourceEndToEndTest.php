@@ -149,10 +149,8 @@ final class DbUserSourceEndToEndTest extends TestCase
 
     private function runMigration(MigrationDefinition $definition, MigrationIdMap $idMap): void
     {
-        $provider = new class($definition) implements HasMigrationsInterface {
-            public function __construct(private readonly MigrationDefinition $definition)
-            {
-            }
+        $provider = new class ($definition) implements HasMigrationsInterface {
+            public function __construct(private readonly MigrationDefinition $definition) {}
 
             public function migrations(): iterable
             {
@@ -203,8 +201,7 @@ final class IdMapBackedDestination implements DestinationPluginInterface
     public function __construct(
         private readonly MigrationIdMap $idMap,
         private readonly string $destinationEntityType,
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

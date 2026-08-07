@@ -196,6 +196,6 @@ it('defaults to an empty objectTitles index when none is supplied, preserving pr
 
 it('wraps WxrParseException as SourceReadException when the file is missing', function () {
     $source = new WordPressMenuSource(new WxrReader('/nonexistent/menus.xml'));
-    expect(fn () => iterator_to_array($source->records(), false))
+    expect(fn() => iterator_to_array($source->records(), false))
         ->toThrow(SourceReadException::class);
 });

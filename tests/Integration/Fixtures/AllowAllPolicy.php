@@ -19,9 +19,7 @@ use Waaseyaa\Entity\EntityInterface;
  */
 final class AllowAllPolicy implements AccessPolicyInterface
 {
-    public function __construct(private readonly string $entityTypeId)
-    {
-    }
+    public function __construct(private readonly string $entityTypeId) {}
 
     public function access(EntityInterface $entity, string $operation, AccountInterface $account): AccessResult
     {

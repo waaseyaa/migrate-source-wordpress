@@ -19,7 +19,7 @@ function oembedContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts',
         destinationField: 'body',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
@@ -38,10 +38,10 @@ it('returns content unchanged with resolveRemote=false (default)', function () {
 it('detects YouTube/Vimeo/Twitter/Instagram URLs', function () {
     $plugin = new WordPressOembedExpand();
     $hits = $plugin->detect(
-        'YT https://www.youtube.com/watch?v=abc Vimeo https://vimeo.com/12345 Twitter https://twitter.com/foo/status/9 Instagram https://www.instagram.com/p/CXY/'
+        'YT https://www.youtube.com/watch?v=abc Vimeo https://vimeo.com/12345 Twitter https://twitter.com/foo/status/9 Instagram https://www.instagram.com/p/CXY/',
     );
 
-    $providers = array_map(static fn ($h) => $h['provider'], $hits);
+    $providers = array_map(static fn($h) => $h['provider'], $hits);
     expect($providers)->toContain('youtube');
     expect($providers)->toContain('vimeo');
     expect($providers)->toContain('twitter');

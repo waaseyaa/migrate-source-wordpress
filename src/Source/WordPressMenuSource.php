@@ -82,8 +82,7 @@ final class WordPressMenuSource implements SourcePluginInterface
         private readonly WxrReader $reader,
         private readonly string $migrationId = self::PLUGIN_ID,
         private readonly array $objectTitles = [],
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

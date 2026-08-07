@@ -27,7 +27,7 @@ final class CapturingLogger extends AbstractLogger
 it('throws fileNotFound for a missing path', function () {
     $reader = new WxrReader('/nonexistent/path.xml');
 
-    expect(fn () => iterator_to_array($reader->records()))
+    expect(fn() => iterator_to_array($reader->records()))
         ->toThrow(WxrParseException::class);
 });
 
@@ -50,8 +50,8 @@ it('parses every record in the small-site fixture with correct counts', function
 
     // Assert the CPT post (post_type=project) is yielded as 'post'.
     $postTypes = array_map(
-        static fn (array $r): string => (string) $r['data']['post_type'],
-        array_filter($records, static fn (array $r): bool => $r['type'] === 'post'),
+        static fn(array $r): string => (string) $r['data']['post_type'],
+        array_filter($records, static fn(array $r): bool => $r['type'] === 'post'),
     );
     expect($postTypes)->toContain('project');
 });
@@ -261,7 +261,7 @@ it('skips malformed records with a warning in non-strict mode', function () {
     $reader = new WxrReader($fixture, strict: false, logger: $logger);
 
     $records = iterator_to_array($reader->records(), false);
-    $posts = array_filter($records, static fn (array $r): bool => $r['type'] === 'post');
+    $posts = array_filter($records, static fn(array $r): bool => $r['type'] === 'post');
 
     // libxml's recovery on broken CDATA varies — some libxml versions can
     // resync to the next item, others poison the rest of the parse. Either
@@ -269,7 +269,7 @@ it('skips malformed records with a warning in non-strict mode', function () {
     // logged for the broken record.
     expect(count($posts))->toBeGreaterThanOrEqual(1);
 
-    $warnings = array_filter($logger->records, static fn (array $r): bool => $r['level'] === 'warning');
+    $warnings = array_filter($logger->records, static fn(array $r): bool => $r['level'] === 'warning');
     expect(count($warnings))->toBeGreaterThanOrEqual(1);
 });
 
@@ -286,7 +286,7 @@ XML);
 
     $reader = new WxrReader($tmp);
 
-    expect(fn () => iterator_to_array($reader->records()))
+    expect(fn() => iterator_to_array($reader->records()))
         ->toThrow(WxrParseException::class);
 
     @unlink($tmp);

@@ -72,7 +72,7 @@ function eventsContext(SourceRecord $record, string $migrationId, string $destin
         sourceRecord: $record,
         migrationId: $migrationId,
         destinationField: $destinationField,
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 

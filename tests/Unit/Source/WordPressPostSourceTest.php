@@ -51,7 +51,7 @@ it('extracts post fields per data-model §1.4', function () {
 
 it('preserves both post and page post_type values (no filtering)', function () {
     $records = iterator_to_array(makePostSource()->records(), false);
-    $types = array_map(fn ($r) => $r->field('post_type'), $records);
+    $types = array_map(fn($r) => $r->field('post_type'), $records);
     expect($types)->toContain('post');
     expect($types)->toContain('page');
 });
@@ -249,7 +249,7 @@ it('produces collision-free SourceIds vs other source types with the same id', f
 
 it('wraps WxrParseException as SourceReadException when file is missing', function () {
     $source = new WordPressPostSource(new WxrReader('/nonexistent/posts.xml'));
-    expect(fn () => iterator_to_array($source->records(), false))
+    expect(fn() => iterator_to_array($source->records(), false))
         ->toThrow(SourceReadException::class);
 });
 
@@ -365,7 +365,7 @@ it('skips trashed records by default (G-021)', function () {
 
     try {
         $records = iterator_to_array((new WordPressPostSource(new WxrReader($fixturePath)))->records(), false);
-        $statuses = array_map(fn ($r) => $r->field('status'), $records);
+        $statuses = array_map(fn($r) => $r->field('status'), $records);
 
         expect($statuses)->not->toContain('trash');
         expect($records)->toHaveCount(4);
@@ -382,7 +382,7 @@ it('includes trashed records when includeTrashed is true (G-021)', function () {
             (new WordPressPostSource(new WxrReader($fixturePath), includeTrashed: true))->records(),
             false,
         );
-        $statuses = array_map(fn ($r) => $r->field('status'), $records);
+        $statuses = array_map(fn($r) => $r->field('status'), $records);
 
         expect($statuses)->toContain('trash');
         expect($records)->toHaveCount(6);
@@ -420,7 +420,7 @@ it('filters by post_type allowlist when postTypes is provided (G-027)', function
             (new WordPressPostSource(new WxrReader($fixturePath), postTypes: ['page']))->records(),
             false,
         );
-        $types = array_map(fn ($r) => $r->field('post_type'), $records);
+        $types = array_map(fn($r) => $r->field('post_type'), $records);
 
         expect($types)->toBe(['page']);
         expect($records)->toHaveCount(1);
@@ -437,7 +437,7 @@ it('combines post_type filter with default trash-skip (G-021 + G-027)', function
             (new WordPressPostSource(new WxrReader($fixturePath), postTypes: ['post', 'page']))->records(),
             false,
         );
-        $ids = array_map(fn ($r) => $r->field('id'), $records);
+        $ids = array_map(fn($r) => $r->field('id'), $records);
 
         sort($ids);
         expect($ids)->toBe([500, 502, 503]);
@@ -454,7 +454,7 @@ it('yields all post types when postTypes is null (default, no filtering)', funct
             (new WordPressPostSource(new WxrReader($fixturePath), includeTrashed: true))->records(),
             false,
         );
-        $types = array_unique(array_map(fn ($r) => $r->field('post_type'), $records));
+        $types = array_unique(array_map(fn($r) => $r->field('post_type'), $records));
         sort($types);
 
         expect($types)->toBe(['event', 'page', 'post']);
@@ -464,11 +464,11 @@ it('yields all post types when postTypes is null (default, no filtering)', funct
 });
 
 it('rejects empty post_type strings in the postTypes allowlist (G-027)', function () {
-    expect(fn () => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: ['post', '']))
+    expect(fn() => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: ['post', '']))
         ->toThrow(\InvalidArgumentException::class);
 });
 
 it('rejects an empty postTypes allowlist (G-027)', function () {
-    expect(fn () => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: []))
+    expect(fn() => new WordPressPostSource(new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'), postTypes: []))
         ->toThrow(\InvalidArgumentException::class);
 });

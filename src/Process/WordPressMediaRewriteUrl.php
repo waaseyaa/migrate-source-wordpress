@@ -54,8 +54,7 @@ final class WordPressMediaRewriteUrl implements ProcessPluginInterface
         private readonly \Closure $urlResolver,
         private readonly array $cdnHosts = [],
         private readonly LoggerInterface $logger = new NullLogger(),
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {
@@ -94,7 +93,7 @@ final class WordPressMediaRewriteUrl implements ProcessPluginInterface
         // Also handle host-less references like `/wp-content/uploads/...`.
         $bareResult = preg_replace_callback(
             '#(?<![A-Za-z0-9/:])(/wp-content/uploads/[^\s"\'<>]+)#',
-            fn (array $match) => $this->resolveOrLog($match[1], $match[1], $migrationId),
+            fn(array $match) => $this->resolveOrLog($match[1], $match[1], $migrationId),
             $result,
         );
 

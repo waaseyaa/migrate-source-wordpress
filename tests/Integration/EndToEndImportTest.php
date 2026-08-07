@@ -74,7 +74,7 @@ final class EndToEndImportTest extends TestCase
 
     public function test_full_small_site_import_produces_expected_entity_counts(): void
     {
-        $reader = fn () => new WxrReader(self::FIXTURE);
+        $reader = fn() => new WxrReader(self::FIXTURE);
 
         $usersDest = new InMemoryDestination();
         $termsDest = new InMemoryDestination();
@@ -117,7 +117,7 @@ final class EndToEndImportTest extends TestCase
         $reader = new WxrReader(self::FIXTURE);
         $this->driveMigration((new WpUsersToAccounts($reader, $usersDest))->definition(), $usersDest);
 
-        $entries = array_map(static fn ($e) => $e['record'], $usersDest->log);
+        $entries = array_map(static fn($e) => $e['record'], $usersDest->log);
         $admin = null;
         foreach ($entries as $record) {
             if (($record->values['username'] ?? null) === 'admin') {
@@ -202,7 +202,7 @@ final class EndToEndImportTest extends TestCase
             sourceRecord: $record,
             migrationId: $migrationId,
             destinationField: $destinationField,
-            lookup: static fn (string $m, $id) => null,
+            lookup: static fn(string $m, $id) => null,
         );
     }
 }

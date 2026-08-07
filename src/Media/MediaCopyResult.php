@@ -15,8 +15,7 @@ final readonly class MediaCopyResult
         public MediaCopyOperation $operation,
         public string $targetPath,
         public int $sizeBytes,
-    ) {
-    }
+    ) {}
 
     public static function skipped(string $targetPath, int $sizeBytes): self
     {

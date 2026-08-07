@@ -73,7 +73,7 @@ it('resolves to storage ids when refResolve is supplied', function () {
     $newsId = new SourceId('wp_term', ['id' => '5']);
     $plugin = new WordPressTermsResolve(
         slugToTermId: ['category:news' => 5],
-        refResolve: static fn (string $type, string $uuid) => $type === 'taxonomy_term' && $uuid === 'uuid-news' ? 500 : null,
+        refResolve: static fn(string $type, string $uuid) => $type === 'taxonomy_term' && $uuid === 'uuid-news' ? 500 : null,
     );
 
     $terms = [['taxonomy' => 'category', 'slug' => 'news']];
@@ -102,7 +102,7 @@ it('throws ProcessException on a missing slug when onMiss is fail', function () 
     $plugin = new WordPressTermsResolve(slugToTermId: [], onMiss: 'fail');
     $terms = [['taxonomy' => 'category', 'slug' => 'ghost']];
 
-    expect(fn () => $plugin->transform($terms, termsContext(['terms' => $terms])))
+    expect(fn() => $plugin->transform($terms, termsContext(['terms' => $terms])))
         ->toThrow(ProcessException::class);
 });
 
@@ -121,5 +121,5 @@ it('reads terms from the source record when the chain has no upstream value', fu
 });
 
 it('rejects an empty migration id', function () {
-    expect(fn () => new WordPressTermsResolve([], migration: ''))->toThrow(\InvalidArgumentException::class);
+    expect(fn() => new WordPressTermsResolve([], migration: ''))->toThrow(\InvalidArgumentException::class);
 });

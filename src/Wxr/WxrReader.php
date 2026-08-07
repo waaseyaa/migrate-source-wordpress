@@ -245,7 +245,7 @@ final class WxrReader
 
         $this->logger->warning('WXR record skipped due to parse errors', [
             'record_index' => $this->recordIndex,
-            'errors' => array_map(static fn (\LibXMLError $e): string => trim($e->message), $errors),
+            'errors' => array_map(static fn(\LibXMLError $e): string => trim($e->message), $errors),
             'previous' => $previous?->getMessage(),
         ]);
 
@@ -275,7 +275,7 @@ final class WxrReader
     private function extractUser(\SimpleXMLElement $node): array
     {
         $node->registerXPathNamespace('wp', $this->resolveWpNamespace($node));
-        $get = static fn (string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
+        $get = static fn(string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
 
         return [
             'id' => (int) $get('author_id'),
@@ -296,7 +296,7 @@ final class WxrReader
     private function extractTerm(\SimpleXMLElement $node, string $elementName): array
     {
         $node->registerXPathNamespace('wp', $this->resolveWpNamespace($node));
-        $get = static fn (string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
+        $get = static fn(string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
 
         // Three element variants. Field names differ; normalize.
         [$idField, $taxonomyDefault, $nameField, $slugField, $descField, $parentField] = match ($elementName) {
@@ -341,7 +341,7 @@ final class WxrReader
         $excerptNodes = $node->xpath('excerpt:encoded');
         $creatorNodes = $node->xpath('dc:creator');
 
-        $get = static fn (string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
+        $get = static fn(string $field): string => trim((string) ($node->xpath('wp:' . $field)[0] ?? ''));
 
         $publishedGmt = $get('post_date_gmt');
         if ($publishedGmt === '' || $publishedGmt === '0000-00-00 00:00:00') {
@@ -387,7 +387,7 @@ final class WxrReader
     private function extractComment(\SimpleXMLElement $commentNode, int $postId): array
     {
         $commentNode->registerXPathNamespace('wp', $this->resolveWpNamespace($commentNode));
-        $get = static fn (string $field): string => trim((string) ($commentNode->xpath('wp:' . $field)[0] ?? ''));
+        $get = static fn(string $field): string => trim((string) ($commentNode->xpath('wp:' . $field)[0] ?? ''));
 
         $approvedRaw = $get('comment_approved');
         $approved = $approvedRaw === '1';

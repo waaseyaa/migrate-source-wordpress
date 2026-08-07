@@ -69,8 +69,7 @@ final class IdMapMediaUrlResolver
         private readonly \Closure $uuidToUrl,
         private readonly string $mediaSourceType = WordPressMediaSource::SOURCE_TYPE,
         private readonly LoggerInterface $logger = new NullLogger(),
-    ) {
-    }
+    ) {}
 
     /**
      * Build a `$pathToAttachmentId` index by iterating every record a

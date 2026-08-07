@@ -19,7 +19,7 @@ jobs:
           php-version: '8.5'
           coverage: none
       - run: composer install --prefer-dist --no-progress --no-interaction
-      - run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      - run: vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff --using-cache=no
 
   phpstan:
     name: Static analysis (PHPStan level 5)

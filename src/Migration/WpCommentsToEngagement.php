@@ -39,8 +39,7 @@ final class WpCommentsToEngagement
     public function __construct(
         private readonly WxrReader $reader,
         private readonly DestinationPluginInterface $destination,
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

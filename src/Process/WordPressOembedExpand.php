@@ -65,8 +65,7 @@ final class WordPressOembedExpand implements ProcessPluginInterface
     public function __construct(
         private readonly bool $resolveRemote = false,
         private readonly ?OembedFetcherInterface $fetcher = null,
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {
@@ -93,7 +92,7 @@ final class WordPressOembedExpand implements ProcessPluginInterface
         foreach (self::PROVIDERS as $provider => $info) {
             $result = preg_replace_callback(
                 $info['regex'],
-                fn (array $match) => $this->resolveOne($match[0], $provider, $info['endpoint']),
+                fn(array $match) => $this->resolveOne($match[0], $provider, $info['endpoint']),
                 $result,
             ) ?? $result;
         }

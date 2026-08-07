@@ -46,8 +46,7 @@ final class WpEventsToNodes
         private readonly DestinationPluginInterface $destination,
         private readonly ?SourcePluginInterface $source = null,
         private readonly WordPressShortcodeStrip $shortcodeStrip = new WordPressShortcodeStrip(),
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

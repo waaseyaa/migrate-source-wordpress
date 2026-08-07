@@ -52,8 +52,7 @@ final class WpMediaToEntities
         private readonly WxrReader $reader,
         private readonly DestinationPluginInterface $destination,
         private readonly ?ReferenceResolutionOptions $references = null,
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

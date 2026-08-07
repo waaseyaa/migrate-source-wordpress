@@ -60,7 +60,7 @@ final class WxrParseException extends \RuntimeException
     public static function recordParseFailure(int $recordIndex, array $errors): self
     {
         $messages = array_map(
-            static fn (\LibXMLError $e): string => sprintf(
+            static fn(\LibXMLError $e): string => sprintf(
                 'line %d col %d: %s',
                 $e->line,
                 $e->column,

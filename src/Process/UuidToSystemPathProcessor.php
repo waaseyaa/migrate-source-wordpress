@@ -48,8 +48,7 @@ final class UuidToSystemPathProcessor implements ProcessPluginInterface
         private readonly string $entityType,
         private readonly string $prefix = '/node/',
         private readonly LoggerInterface $logger = new NullLogger(),
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

@@ -52,7 +52,7 @@ it('WpPostsToArticles adds a uid chain when loginToId is supplied', function () 
 it('WpPostsToArticles appends a WordPressEntityRefResolve step to the uid chain when entityRefResolve is supplied', function () {
     $references = new ReferenceResolutionOptions(
         loginToId: ['admin' => 1],
-        entityRefResolve: static fn (string $t, string $u) => 1,
+        entityRefResolve: static fn(string $t, string $u) => 1,
     );
     $def = (new WpPostsToArticles(new WxrReader(REF_FIXTURE), new InMemoryDestination(), references: $references))->definition();
 

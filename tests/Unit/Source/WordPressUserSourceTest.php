@@ -105,7 +105,7 @@ it('produces collision-free SourceIds vs other source types with the same id', f
 
 it('wraps WxrParseException as SourceReadException when file is missing', function () {
     $source = new WordPressUserSource(new WxrReader('/nonexistent/wp_user.xml'));
-    expect(fn () => iterator_to_array($source->records(), false))
+    expect(fn() => iterator_to_array($source->records(), false))
         ->toThrow(SourceReadException::class);
 });
 

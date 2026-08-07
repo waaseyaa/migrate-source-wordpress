@@ -35,8 +35,7 @@ final class WpVenuesToNodes
         private readonly WxrReader $reader,
         private readonly DestinationPluginInterface $destination,
         private readonly ?SourcePluginInterface $source = null,
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {
