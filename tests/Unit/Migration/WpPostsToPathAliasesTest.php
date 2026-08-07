@@ -27,7 +27,7 @@ function makePathAliasesFactory(?\Closure $uuidToId = null): WpPostsToPathAliase
     return new WpPostsToPathAliases(
         reader: $reader,
         destination: new InMemoryDestination(),
-        uuidToId: $uuidToId ?? static fn (string $entityType, string $uuid): int|string|null => null,
+        uuidToId: $uuidToId ?? static fn(string $entityType, string $uuid): int|string|null => null,
     );
 }
 
@@ -97,7 +97,7 @@ it('honors a custom langcode and system path prefix', function () {
     $factory = new WpPostsToPathAliases(
         reader: $reader,
         destination: new InMemoryDestination(),
-        uuidToId: static fn (): int|string|null => null,
+        uuidToId: static fn(): int|string|null => null,
         destinationEntityType: 'article',
         systemPathPrefix: '/article/',
         langcode: 'fr',
@@ -116,7 +116,7 @@ it('accepts an injected source, defaulting to an unfiltered WordPressPostSource 
     $factory = new WpPostsToPathAliases(
         reader: $reader,
         destination: new InMemoryDestination(),
-        uuidToId: static fn (): int|string|null => null,
+        uuidToId: static fn(): int|string|null => null,
         source: $filteredSource,
     );
     $definition = $factory->definition();
@@ -151,7 +151,7 @@ it('restricts emitted aliases to an injected filtered source (small-site.xml car
     $factory = new WpPostsToPathAliases(
         reader: new WxrReader(__DIR__ . '/../../../testing/Fixtures/small-site.xml'),
         destination: new InMemoryDestination(),
-        uuidToId: static fn (): int|string|null => null,
+        uuidToId: static fn(): int|string|null => null,
         source: $filteredSource,
     );
 
@@ -164,7 +164,7 @@ it('end-to-end: chain resolves the destination system path via the id-map lookup
     // uuid resolver — proves the chain composes correctly without requiring
     // a live MigrationRunner.
     $factory = makePathAliasesFactory(
-        static fn (string $entityType, string $uuid): ?int => $entityType === 'node' && $uuid === 'uuid-post-100' ? 555 : null,
+        static fn(string $entityType, string $uuid): ?int => $entityType === 'node' && $uuid === 'uuid-post-100' ? 555 : null,
     );
     $definition = $factory->definition();
     $chain = $definition->processForField('path');
@@ -191,10 +191,16 @@ it('end-to-end: chain resolves the destination system path via the id-map lookup
 
     $value = null;
     foreach ($chain as $step) {
-        $plugin = is_string($step) ? new class($step) implements \Waaseyaa\Migration\Plugin\ProcessPluginInterface {
+        $plugin = is_string($step) ? new class ($step) implements \Waaseyaa\Migration\Plugin\ProcessPluginInterface {
             public function __construct(private readonly string $field) {}
-            public function id(): string { return 'pass_through'; }
-            public function stability(): string { return 'stable'; }
+            public function id(): string
+            {
+                return 'pass_through';
+            }
+            public function stability(): string
+            {
+                return 'stable';
+            }
             public function transform(mixed $value, ProcessContext $context): mixed
             {
                 return $context->sourceRecord->field($this->field);

@@ -50,7 +50,7 @@ it('resolves to a storage id when refResolve is supplied', function () {
     $newsId = new SourceId('wp_term', ['id' => '5']);
     $plugin = new WordPressTermParentResolve(
         slugToTermId: ['category:news' => 5],
-        refResolve: static fn (string $type, string $uuid) => $uuid === 'uuid-news' ? 500 : null,
+        refResolve: static fn(string $type, string $uuid) => $uuid === 'uuid-news' ? 500 : null,
     );
 
     $context = termParentContext(
@@ -94,9 +94,9 @@ it('throws ProcessException for an unresolvable parent when onMiss is fail', fun
     $plugin = new WordPressTermParentResolve(slugToTermId: [], onMiss: 'fail');
     $context = termParentContext(['taxonomy_name' => 'category', 'parent_slug' => 'ghost']);
 
-    expect(fn () => $plugin->transform('ghost', $context))->toThrow(ProcessException::class);
+    expect(fn() => $plugin->transform('ghost', $context))->toThrow(ProcessException::class);
 });
 
 it('rejects an empty taxonomyField', function () {
-    expect(fn () => new WordPressTermParentResolve([], taxonomyField: ''))->toThrow(\InvalidArgumentException::class);
+    expect(fn() => new WordPressTermParentResolve([], taxonomyField: ''))->toThrow(\InvalidArgumentException::class);
 });

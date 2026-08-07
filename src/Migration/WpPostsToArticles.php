@@ -69,8 +69,7 @@ final class WpPostsToArticles
         private readonly WordPressOembedExpand $oembedExpand = new WordPressOembedExpand(),
         private readonly ?WordPressMediaRewriteUrl $mediaRewrite = null,
         private readonly ?ReferenceResolutionOptions $references = null,
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

@@ -102,8 +102,7 @@ final class WpPostsToPathAliases
         private readonly string $systemPathPrefix = '/node/',
         private readonly string $langcode = 'en',
         private readonly ?SourcePluginInterface $source = null,
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

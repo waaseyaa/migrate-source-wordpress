@@ -17,7 +17,7 @@ function shortcodeContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts',
         destinationField: 'body',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
@@ -48,8 +48,8 @@ it('strips a paired shortcode preserving inner text', function () {
 
 it('invokes the registered rewriter for a known tag', function () {
     $plugin = new WordPressShortcodeStrip([
-        'youtube' => static fn (string $tag, array $attrs, string $inner): string =>
-            sprintf('<iframe src="https://www.youtube.com/embed/%s"></iframe>', $attrs['id'] ?? ''),
+        'youtube' => static fn(string $tag, array $attrs, string $inner): string
+            => sprintf('<iframe src="https://www.youtube.com/embed/%s"></iframe>', $attrs['id'] ?? ''),
     ]);
 
     $out = $plugin->transform('See [youtube id="abc123"] for details.', shortcodeContext());
@@ -76,7 +76,7 @@ it('handles nested shortcodes via depth-limited recursion', function () {
 });
 
 it('is case-insensitive on tag matching', function () {
-    $plugin = new WordPressShortcodeStrip(['box' => static fn () => 'BOX']);
+    $plugin = new WordPressShortcodeStrip(['box' => static fn() => 'BOX']);
     $out = $plugin->transform('[BOX]ignored[/BOX]', shortcodeContext());
     expect($out)->toBe('BOX');
 });

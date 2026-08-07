@@ -18,19 +18,19 @@ function refResolveContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts_to_articles',
         destinationField: 'uid',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
 it('declares plugin metadata', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => null, 'account');
+    $plugin = new WordPressEntityRefResolve(static fn() => null, 'account');
     expect($plugin->id())->toBe('wordpress_entity_ref_resolve');
     expect($plugin->stability())->toBe('stable');
 });
 
 it('resolves a destination uuid to a storage id via the resolver closure', function () {
     $plugin = new WordPressEntityRefResolve(
-        resolver: static fn (string $type, string $uuid) => $type === 'account' && $uuid === 'uuid-abc' ? 42 : null,
+        resolver: static fn(string $type, string $uuid) => $type === 'account' && $uuid === 'uuid-abc' ? 42 : null,
         destinationEntityType: 'account',
     );
 
@@ -52,40 +52,40 @@ it('passes the destination entity type through to the resolver verbatim', functi
 });
 
 it('returns null when the chained value is null and onMiss is null (default)', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => 'unreachable', 'account');
+    $plugin = new WordPressEntityRefResolve(static fn() => 'unreachable', 'account');
     expect($plugin->transform(null, refResolveContext()))->toBeNull();
 });
 
 it('returns null when the chained value is an empty string', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => 'unreachable', 'account');
+    $plugin = new WordPressEntityRefResolve(static fn() => 'unreachable', 'account');
     expect($plugin->transform('', refResolveContext()))->toBeNull();
 });
 
 it('returns null when the resolver itself returns null', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => null, 'account');
+    $plugin = new WordPressEntityRefResolve(static fn() => null, 'account');
     expect($plugin->transform('uuid-abc', refResolveContext()))->toBeNull();
 });
 
 it('throws ProcessException on miss when onMiss is fail', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => null, 'account', onMiss: 'fail');
+    $plugin = new WordPressEntityRefResolve(static fn() => null, 'account', onMiss: 'fail');
 
-    expect(fn () => $plugin->transform('uuid-abc', refResolveContext()))
+    expect(fn() => $plugin->transform('uuid-abc', refResolveContext()))
         ->toThrow(ProcessException::class);
 });
 
 it('throws ProcessException on a null chained value when onMiss is fail', function () {
-    $plugin = new WordPressEntityRefResolve(static fn () => 'unreachable', 'account', onMiss: 'fail');
+    $plugin = new WordPressEntityRefResolve(static fn() => 'unreachable', 'account', onMiss: 'fail');
 
-    expect(fn () => $plugin->transform(null, refResolveContext()))
+    expect(fn() => $plugin->transform(null, refResolveContext()))
         ->toThrow(ProcessException::class);
 });
 
 it('rejects an empty destinationEntityType', function () {
-    expect(fn () => new WordPressEntityRefResolve(static fn () => null, ''))
+    expect(fn() => new WordPressEntityRefResolve(static fn() => null, ''))
         ->toThrow(\InvalidArgumentException::class);
 });
 
 it('rejects an unrecognised onMiss value', function () {
-    expect(fn () => new WordPressEntityRefResolve(static fn () => null, 'account', onMiss: 'bogus'))
+    expect(fn() => new WordPressEntityRefResolve(static fn() => null, 'account', onMiss: 'bogus'))
         ->toThrow(\InvalidArgumentException::class);
 });

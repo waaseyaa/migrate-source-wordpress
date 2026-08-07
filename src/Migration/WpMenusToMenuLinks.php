@@ -59,8 +59,7 @@ final class WpMenusToMenuLinks
         private readonly string $postsMigrationId = WpPostsToArticles::MIGRATION_ID,
         private readonly string $destinationEntityType = 'node',
         private readonly string $systemPathPrefix = '/node/',
-    ) {
-    }
+    ) {}
 
     public function definition(): MigrationDefinition
     {

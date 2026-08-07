@@ -67,7 +67,7 @@ it('resolves a bare uploads-relative path to a destination URL end-to-end', func
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: ['2025/05/logo.png' => 200],
-        uuidToUrl: static fn (string $entityType, string $uuid): ?string => $entityType === 'media' && $uuid === 'uuid-media-200'
+        uuidToUrl: static fn(string $entityType, string $uuid): ?string => $entityType === 'media' && $uuid === 'uuid-media-200'
             ? '/media/uuid-media-200/file'
             : null,
     );
@@ -91,7 +91,7 @@ it('is invokable and exposes resolver() as an equivalent closure', function () {
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: ['2025/05/logo.png' => 200],
-        uuidToUrl: static fn (): string => '/media/logo',
+        uuidToUrl: static fn(): string => '/media/logo',
     );
 
     $closure = $resolver->resolver();
@@ -107,7 +107,7 @@ it('returns null and logs when the relative path is not in the attachment index'
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: [],
-        uuidToUrl: static fn (): string => '/should-not-be-called',
+        uuidToUrl: static fn(): string => '/should-not-be-called',
         logger: $logger,
     );
 
@@ -124,7 +124,7 @@ it('returns null and logs when the attachment has no id-map row yet', function (
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: ['2025/05/logo.png' => 200],
-        uuidToUrl: static fn (): string => '/should-not-be-called',
+        uuidToUrl: static fn(): string => '/should-not-be-called',
         logger: $logger,
     );
 
@@ -149,7 +149,7 @@ it('returns null and logs when the uuid-to-url closure misses', function () {
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: ['2025/05/logo.png' => 200],
-        uuidToUrl: static fn (): ?string => null,
+        uuidToUrl: static fn(): ?string => null,
         logger: $logger,
     );
 
@@ -189,7 +189,7 @@ it('composes end-to-end with the real WordPressMediaRewriteUrl: body HTML in, re
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: $index,
-        uuidToUrl: static fn (string $entityType, string $uuid): ?string => $entityType === 'media'
+        uuidToUrl: static fn(string $entityType, string $uuid): ?string => $entityType === 'media'
             ? '/media/' . $uuid . '/file'
             : null,
     );
@@ -200,7 +200,7 @@ it('composes end-to-end with the real WordPressMediaRewriteUrl: body HTML in, re
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts_to_articles',
         destinationField: 'content',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 
     $body = '<p>See our logo: <img src="https://example.test/wp-content/uploads/2025/05/logo.png"></p>';
@@ -220,7 +220,7 @@ it('composes end-to-end with the real WordPressMediaRewriteUrl and warns for an 
         idMap: $idMap,
         mediaMigrationId: 'wp_media_to_entities',
         pathToAttachmentId: $index,
-        uuidToUrl: static fn (): string => '/should-not-be-reached',
+        uuidToUrl: static fn(): string => '/should-not-be-reached',
         logger: $logger,
     );
 
@@ -230,7 +230,7 @@ it('composes end-to-end with the real WordPressMediaRewriteUrl and warns for an 
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts_to_articles',
         destinationField: 'content',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 
     $body = '<img src="https://example.test/wp-content/uploads/2025/05/banner.jpg">';

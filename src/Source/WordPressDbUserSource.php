@@ -85,8 +85,7 @@ final class WordPressDbUserSource implements SourcePluginInterface
         private readonly string $migrationId = self::PLUGIN_ID,
         private readonly string $tablePrefix = 'wp_',
         private readonly array $metaFields = [],
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {
@@ -237,7 +236,7 @@ final class WordPressDbUserSource implements SourcePluginInterface
         // malformed input; PHPUnit's error-to-exception bridge would turn
         // that into a test warning even with `@`, so swallow it with a
         // scoped handler instead of relying on error-suppression alone.
-        \set_error_handler(static fn (): bool => true);
+        \set_error_handler(static fn(): bool => true);
         try {
             $decoded = \unserialize($rawCapabilities, ['allowed_classes' => false]);
         } finally {

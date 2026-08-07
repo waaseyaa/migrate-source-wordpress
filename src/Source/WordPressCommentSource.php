@@ -39,8 +39,7 @@ final class WordPressCommentSource implements SourcePluginInterface
     public function __construct(
         private readonly WxrReader $reader,
         private readonly string $migrationId = self::PLUGIN_ID,
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

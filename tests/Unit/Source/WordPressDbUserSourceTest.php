@@ -237,7 +237,7 @@ it('orders records deterministically by ID', function () {
     seedUser($db, 2, 'second', 'second@example.test');
 
     $records = iterator_to_array((new WordPressDbUserSource($db))->records(), false);
-    expect(array_map(static fn (SourceRecord $r) => $r->fields['login'], $records))
+    expect(array_map(static fn(SourceRecord $r) => $r->fields['login'], $records))
         ->toBe(['first', 'second', 'third']);
 });
 
@@ -245,7 +245,7 @@ it('raises SourceReadException when the users table is missing', function () {
     $db = DBALDatabase::createSqlite();
     $source = new WordPressDbUserSource($db, migrationId: 'test_migration');
 
-    expect(fn () => iterator_to_array($source->records(), false))
+    expect(fn() => iterator_to_array($source->records(), false))
         ->toThrow(SourceReadException::class);
 });
 

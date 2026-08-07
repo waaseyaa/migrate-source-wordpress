@@ -33,19 +33,19 @@ function rewriteContext(): ProcessContext
         sourceRecord: new SourceRecord('wp_post', ['id' => 1]),
         migrationId: 'wp_posts',
         destinationField: 'body',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
 it('declares plugin metadata', function () {
-    $plugin = new WordPressMediaRewriteUrl(static fn () => null);
+    $plugin = new WordPressMediaRewriteUrl(static fn() => null);
     expect($plugin->id())->toBe('wordpress_media_rewrite_url');
     expect($plugin->stability())->toBe('stable');
 });
 
 it('rewrites canonical wp-content/uploads URL via the resolver', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        static fn (string $rel): ?string => $rel === '/wp-content/uploads/2024/01/photo.jpg'
+        static fn(string $rel): ?string => $rel === '/wp-content/uploads/2024/01/photo.jpg'
             ? 'https://destination.test/media/photo.jpg'
             : null,  // this branch only — null is reachable here
     );
@@ -57,7 +57,7 @@ it('rewrites canonical wp-content/uploads URL via the resolver', function () {
 
 it('rewrites a CDN-prefixed URL when the host is allowlisted', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        urlResolver: static fn (string $rel) => 'https://destination.test' . $rel,
+        urlResolver: static fn(string $rel) => 'https://destination.test' . $rel,
         cdnHosts: ['cdn.example.com'],
     );
 
@@ -68,7 +68,7 @@ it('rewrites a CDN-prefixed URL when the host is allowlisted', function () {
 
 it('leaves non-allowlisted CDN URLs untouched', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        urlResolver: static fn () => 'https://destination.test/replaced',
+        urlResolver: static fn() => 'https://destination.test/replaced',
         cdnHosts: ['cdn.example.com'],
     );
 
@@ -79,7 +79,7 @@ it('leaves non-allowlisted CDN URLs untouched', function () {
 
 it('rewrites any host when cdnHosts is empty (rewrite-everywhere mode)', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        static fn (string $rel) => 'https://destination.test' . $rel,
+        static fn(string $rel) => 'https://destination.test' . $rel,
     );
 
     $input = '<img src="https://random.example/wp-content/uploads/2024/02/x.png" />';
@@ -90,7 +90,7 @@ it('rewrites any host when cdnHosts is empty (rewrite-everywhere mode)', functio
 it('logs a warning when the resolver returns null and leaves URL unchanged', function () {
     $logger = new RewriteCapturingLogger();
     $plugin = new WordPressMediaRewriteUrl(
-        urlResolver: static fn (): ?string => null,
+        urlResolver: static fn(): ?string => null,
         logger: $logger,
     );
 
@@ -104,7 +104,7 @@ it('logs a warning when the resolver returns null and leaves URL unchanged', fun
 
 it('handles host-less /wp-content/uploads/ references', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        static fn (string $rel) => 'https://destination.test' . $rel,
+        static fn(string $rel) => 'https://destination.test' . $rel,
     );
 
     $input = '<img src="/wp-content/uploads/2024/01/img.png" />';
@@ -113,14 +113,14 @@ it('handles host-less /wp-content/uploads/ references', function () {
 });
 
 it('returns non-string values unchanged', function () {
-    $plugin = new WordPressMediaRewriteUrl(static fn () => null);
+    $plugin = new WordPressMediaRewriteUrl(static fn() => null);
     expect($plugin->transform(42, rewriteContext()))->toBe(42);
     expect($plugin->transform(null, rewriteContext()))->toBeNull();
 });
 
 it('is case-insensitive on CDN host matching', function () {
     $plugin = new WordPressMediaRewriteUrl(
-        urlResolver: static fn (string $rel) => 'https://destination.test' . $rel,
+        urlResolver: static fn(string $rel) => 'https://destination.test' . $rel,
         cdnHosts: ['cdn.example.com'],
     );
 
@@ -136,7 +136,7 @@ it('chains cleanly with WordPressShortcodeStrip and WordPressOembedExpand', func
     $stripped = (new \Waaseyaa\Migrate\Source\WordPress\Process\WordPressShortcodeStrip())->transform($input, $context);
     $expanded = (new \Waaseyaa\Migrate\Source\WordPress\Process\WordPressOembedExpand(resolveRemote: false))->transform($stripped, $context);
     $rewritten = (new WordPressMediaRewriteUrl(
-        static fn (string $rel) => 'https://destination.test/media' . $rel,
+        static fn(string $rel) => 'https://destination.test/media' . $rel,
     ))->transform($expanded, $context);
 
     expect($rewritten)->not->toContain('[gallery');

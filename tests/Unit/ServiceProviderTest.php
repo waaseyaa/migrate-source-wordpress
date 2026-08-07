@@ -13,7 +13,7 @@ it('registers as a migration provider without the retired plugin-discovery inter
     expect($provider)->toBeInstanceOf(HasMigrationsInterface::class);
     expect(iterator_to_array($provider->migrations()))->toBe([]);
     $methods = array_map(
-        static fn (\ReflectionMethod $method): string => $method->getName(),
+        static fn(\ReflectionMethod $method): string => $method->getName(),
         (new \ReflectionClass($provider))->getMethods(),
     );
     expect($methods)->not->toContain('migrationPlugins');

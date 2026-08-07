@@ -18,7 +18,7 @@ function authorContext(array $fields = ['author_login' => 'admin']): ProcessCont
         sourceRecord: new SourceRecord('wp_post', $fields),
         migrationId: 'wp_posts_to_articles',
         destinationField: 'uid',
-        lookup: static fn (string $m, $id) => null,
+        lookup: static fn(string $m, $id) => null,
     );
 }
 
@@ -52,7 +52,7 @@ it('returns null for an unknown login when onMiss is null (default)', function (
 
 it('throws ProcessException for an unknown login when onMiss is fail', function () {
     $plugin = new WordPressAuthorIdResolve(['admin' => 1], onMiss: 'fail');
-    expect(fn () => $plugin->transform('ghost', authorContext()))->toThrow(ProcessException::class);
+    expect(fn() => $plugin->transform('ghost', authorContext()))->toThrow(ProcessException::class);
 });
 
 it('returns null for an empty/missing login', function () {
@@ -61,9 +61,9 @@ it('returns null for an empty/missing login', function () {
 });
 
 it('rejects an empty sourceField', function () {
-    expect(fn () => new WordPressAuthorIdResolve([], sourceField: ''))->toThrow(\InvalidArgumentException::class);
+    expect(fn() => new WordPressAuthorIdResolve([], sourceField: ''))->toThrow(\InvalidArgumentException::class);
 });
 
 it('rejects an unrecognised onMiss value', function () {
-    expect(fn () => new WordPressAuthorIdResolve([], onMiss: 'bogus'))->toThrow(\InvalidArgumentException::class);
+    expect(fn() => new WordPressAuthorIdResolve([], onMiss: 'bogus'))->toThrow(\InvalidArgumentException::class);
 });

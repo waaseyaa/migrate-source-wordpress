@@ -36,8 +36,7 @@ final class WordPressShortcodeStrip implements ProcessPluginInterface
      */
     public function __construct(
         private readonly array $rewriters = [],
-    ) {
-    }
+    ) {}
 
     public function id(): string
     {

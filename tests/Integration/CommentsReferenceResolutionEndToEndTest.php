@@ -219,11 +219,9 @@ final class CommentsReferenceResolutionEndToEndTest extends TestCase
     /** @param list<MigrationDefinition> $definitions */
     private function buildRunner(array $definitions): MigrationRunner
     {
-        $provider = new class($definitions) implements HasMigrationsInterface {
+        $provider = new class ($definitions) implements HasMigrationsInterface {
             /** @param list<MigrationDefinition> $defs */
-            public function __construct(private readonly array $defs)
-            {
-            }
+            public function __construct(private readonly array $defs) {}
 
             public function migrations(): iterable
             {
