@@ -16,7 +16,8 @@ use Waaseyaa\Migration\SourceId;
  *
  * Filters {@see WxrReader} records to `type === 'attachment'` and projects
  * the post-like data shape into the media record contract defined by
- * data-model §1.3. `<wp:attachment_url>` is pulled from `_extra` (the reader
+ * data-model §1.3. The attachment `title` remains distinct from accessibility
+ * `alt_text`. `<wp:attachment_url>` is pulled from `_extra` (the reader
  * captures it there because `attachment_url` is not a typed post slot), and
  * postmeta keys `_wp_attached_file` / `_wp_attachment_image_alt` are pulled
  * from the `_extra.postmeta` sub-map.
@@ -154,6 +155,7 @@ final class WordPressMediaSource implements SourcePluginInterface
 
         return [
             'id' => $data['id'] ?? 0,
+            'title' => is_string($data['title'] ?? null) ? $data['title'] : '',
             'file_path' => $filePath,
             'mime_type' => $mimeType,
             'alt_text' => $altText,

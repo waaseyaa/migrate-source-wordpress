@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Preserve each WXR attachment's editorial title as the media source `title` field and map it to the default destination `name`, falling back to `(untitled attachment)` only when the title is genuinely blank. Alt text remains a separate accessibility field (#20).
+
 - Keep reference-resolution integration fixtures compatible with both the declared alpha.259 floor and current storage, immutable-principal, and protected-field-read boundaries (#15).
 
 - Make CI run for pull requests targeting stacked branches, and make PHP-CS-Fixer use a tracked PER-CS configuration with a pinned non-interactive command instead of passing after generating an ephemeral configuration without checking source (#16).

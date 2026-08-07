@@ -15,6 +15,7 @@ use Waaseyaa\Migrate\Source\WordPress\Process\WordPressTermsResolve;
 use Waaseyaa\Migrate\Source\WordPress\Testing\InMemoryDestination;
 use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\Plugin\Process\LookupProcessor;
+use Waaseyaa\Migration\Plugin\Process\DefaultValueProcessor;
 use Waaseyaa\Migration\Plugin\Process\TypeCoerceProcessor;
 
 const REF_FIXTURE = __DIR__ . '/../../../testing/Fixtures/small-site.xml';
@@ -124,6 +125,9 @@ it('WpMediaToEntities process map is unchanged when $references is omitted', fun
     $def = (new WpMediaToEntities(new WxrReader(REF_FIXTURE), new InMemoryDestination()))->definition();
 
     expect($def->process)->toHaveKeys(['file_path', 'parent_post_id']);
+    expect($def->process)->toHaveKey('name');
+    expect($def->process['name'][0])->toBe('title');
+    expect($def->process['name'][1])->toBeInstanceOf(DefaultValueProcessor::class);
     expect($def->process)->not->toHaveKey('parent_ref');
     expect($def->process['parent_post_id'])->toBe('parent_post_id');
     expect($def->dependencies)->toBe(['wp_terms_to_taxonomy']);

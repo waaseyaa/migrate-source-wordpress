@@ -101,6 +101,10 @@ return [
 
 The `WpPostsToArticles` name is an **example** — your destination might be called `BlogPost` or `Teaching` or `NewsItem`. Rename freely; see the [customization guide](customization.md).
 
+### Attachment titles and alt text
+
+`WordPressMediaSource` emits the WXR attachment `<title>` as `title` and the `_wp_attachment_image_alt` postmeta value as `alt_text`. They are intentionally separate: the title is the asset's editorial label, while alt text describes an image for accessibility. The default `WpMediaToEntities` migration maps `title` to destination `name` and uses `(untitled attachment)` only when the WXR title is genuinely blank; it never substitutes alt text as the media name.
+
 ### Trash, status, and post-type filtering
 
 `WordPressPostSource` (the source `WpPostsToArticles` builds on) has three related behaviors worth knowing about:
