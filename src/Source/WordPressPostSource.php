@@ -167,7 +167,9 @@ final class WordPressPostSource implements SourcePluginInterface
         return [
             'id' => $data['id'] ?? 0,
             'post_type' => $data['post_type'] ?? 'post',
-            'title' => $data['title'] ?? '',
+            'title' => is_string($data['title'] ?? null)
+                ? html_entity_decode($data['title'], ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8')
+                : '',
             'slug' => $data['slug'] ?? '',
             'content' => $data['content'] ?? '',
             'excerpt' => $data['excerpt'] ?? null,
