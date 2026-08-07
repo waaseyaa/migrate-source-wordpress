@@ -81,6 +81,47 @@ it('extracts alt_text from postmeta _wp_attachment_image_alt', function () {
     expect($records[1]->field('alt_text'))->toBeNull();
 });
 
+it('preserves attachment titles independently from alt text', function () {
+    $records = iterator_to_array(makeMediaSource()->records(), false);
+
+    expect($records[0]->field('title'))->toBe('logo.png');
+    expect($records[0]->field('alt_text'))->toBe('Site logo');
+    expect($records[1]->field('title'))->toBe('banner.jpg');
+    expect($records[1]->field('alt_text'))->toBeNull();
+});
+
+it('preserves Unicode and genuinely empty attachment titles', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_media_titles_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title><![CDATA[Jiingtamok – Anishinaabemowin]]></title>
+<wp:post_id>510</wp:post_id>
+<wp:post_type>attachment</wp:post_type>
+<wp:attachment_url>https://example.test/wp-content/uploads/jiingtamok.pdf</wp:attachment_url>
+</item>
+<item>
+<title><![CDATA[]]></title>
+<wp:post_id>511</wp:post_id>
+<wp:post_type>attachment</wp:post_type>
+<wp:attachment_url>https://example.test/wp-content/uploads/untitled.pdf</wp:attachment_url>
+</item>
+</channel>
+</rss>
+XML);
+
+    try {
+        $records = iterator_to_array((new WordPressMediaSource(new WxrReader($fixturePath)))->records(), false);
+        expect($records[0]->field('title'))->toBe('Jiingtamok – Anishinaabemowin');
+        expect($records[1]->field('title'))->toBe('');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
 it('preserves parent_post_id when post_parent != 0', function () {
     $records = iterator_to_array(makeMediaSource()->records(), false);
     expect($records[0]->field('parent_post_id'))->toBe(100);

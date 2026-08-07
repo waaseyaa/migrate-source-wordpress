@@ -9,13 +9,17 @@ use Waaseyaa\Migrate\Source\WordPress\Source\WordPressMediaSource;
 use Waaseyaa\Migrate\Source\WordPress\Wxr\WxrReader;
 use Waaseyaa\Migration\MigrationDefinition;
 use Waaseyaa\Migration\Plugin\DestinationPluginInterface;
+use Waaseyaa\Migration\Plugin\Process\DefaultValueProcessor;
 use Waaseyaa\Migration\Plugin\Process\LookupProcessor;
 use Waaseyaa\Migration\Plugin\Process\TypeCoerceProcessor;
 
 /**
  * Default WordPress media → destination media entity migration factory.
  *
- * Yields source records with `file_path`, `original_url`, `mime_type`, etc.
+ * Maps the WXR attachment `title` to destination `name` (with an explicit
+ * placeholder only for a genuinely blank title) and preserves `alt_text` as
+ * its separate accessibility field. Yields source records with `file_path`,
+ * `original_url`, `mime_type`, etc.
  * Actual file copying is operator-controlled via
  * {@see \Waaseyaa\Migrate\Source\WordPress\Media\MediaCopier}: consumers
  * compose it into their destination plugin and pass `source.media_path`
@@ -57,6 +61,7 @@ final class WpMediaToEntities
     public function definition(): MigrationDefinition
     {
         $process = [
+            'name' => ['title', new DefaultValueProcessor('(untitled attachment)')],
             'file_path' => 'file_path',
             'original_url' => 'original_url',
             'mime_type' => 'mime_type',

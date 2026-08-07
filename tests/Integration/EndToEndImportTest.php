@@ -91,6 +91,8 @@ final class EndToEndImportTest extends TestCase
         self::assertCount(2, $usersDest->writes, 'small-site fixture has 2 WP users');
         self::assertCount(6, $termsDest->writes, 'small-site fixture has 6 terms (4 categories + 2 tags)');
         self::assertCount(3, $mediaDest->writes, 'small-site fixture has 3 attachments');
+        $mediaNames = array_map(static fn($entry): mixed => $entry['record']->values['name'] ?? null, $mediaDest->log);
+        self::assertSame(['logo.png', 'banner.jpg', 'guide.pdf'], $mediaNames);
         self::assertCount(5, $postsDest->writes, 'small-site fixture has 5 posts (including a CPT)');
         self::assertCount(4, $commentsDest->writes, 'small-site fixture has 4 comments');
     }
