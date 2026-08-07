@@ -113,6 +113,8 @@ The `WpPostsToArticles` name is an **example** — your destination might be cal
 
 - **`status` is always the raw WordPress string** — `publish`, `draft`, `pending`, `private`, `future`, etc. — never flattened to a boolean. If your destination wants a simple published/unpublished flag, add a small mapping step to the `status` entry in your process map (e.g. a process plugin that maps `'publish' => true`, everything else `false`) rather than relying on the source to decide that for you.
 
+- **`title` is normalized to its WordPress display value.** WXR commonly places an already encoded title such as `Operations &amp; Maintenance` inside CDATA. `WordPressPostSource` decodes HTML entities exactly once before emitting the record, so destinations should store the emitted title directly and must not add a second presentation-time decode.
+
 - **`post_type` can be filtered at the source** via the `postTypes` constructor argument — a non-empty list of post-type strings. This is the recommended way to split one WXR export into several bundle-specific migrations.
 
 #### Recipe: splitting one WXR file into per-bundle migrations

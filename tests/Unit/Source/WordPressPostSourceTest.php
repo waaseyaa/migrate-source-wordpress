@@ -153,6 +153,42 @@ XML);
     }
 });
 
+it('decodes WordPress HTML entities in post titles exactly once', function () {
+    $fixturePath = sys_get_temp_dir() . '/wp_post_encoded_title_' . uniqid('', true) . '.xml';
+    file_put_contents($fixturePath, <<<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+     xmlns:wp="http://wordpress.org/export/1.2/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<wp:wxr_version>1.2</wp:wxr_version>
+<item>
+<title><![CDATA[Operations &amp; Maintenance &quot;Minoo&quot; — Aanii]]></title>
+<dc:creator><![CDATA[admin]]></dc:creator>
+<content:encoded><![CDATA[Body]]></content:encoded>
+<wp:post_id>905</wp:post_id>
+<wp:post_date>2025-05-04 00:00:00</wp:post_date>
+<wp:post_date_gmt>2025-05-04 00:00:00</wp:post_date_gmt>
+<wp:post_name>operations-maintenance</wp:post_name>
+<wp:status>publish</wp:status>
+<wp:post_parent>0</wp:post_parent>
+<wp:post_type>page</wp:post_type>
+<wp:post_password></wp:post_password>
+</item>
+</channel>
+</rss>
+XML);
+
+    try {
+        $records = iterator_to_array((new WordPressPostSource(new WxrReader($fixturePath)))->records(), false);
+        expect($records[0]->field('title'))->toBe('Operations & Maintenance "Minoo" — Aanii');
+    } finally {
+        @unlink($fixturePath);
+    }
+});
+
 it('populates password for password-protected posts', function () {
     $fixturePath = sys_get_temp_dir() . '/wp_post_pwd_' . uniqid('', true) . '.xml';
     file_put_contents($fixturePath, <<<'XML'
